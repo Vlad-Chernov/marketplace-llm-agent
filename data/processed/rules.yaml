@@ -1,0 +1,40 @@
+deterministic_rules:
+  - id: title-length
+    description: Заголовок должен содержать от 20 до 120 символов.
+    field: title
+    min_length: 20
+    max_length: 120
+    severity: medium
+
+  - id: uppercase-ratio
+    description: Доля заглавных букв в заголовке не должна превышать 50 процентов.
+    field: title
+    max_ratio: 0.50
+    severity: low
+
+  - id: contact-information
+    description: Карточка не должна содержать телефон, email или внешний контакт.
+    fields:
+      - title
+      - description
+    severity: high
+
+  - id: external-url
+    description: Карточка не должна содержать внешние ссылки.
+    fields:
+      - title
+      - description
+    severity: high
+
+semantic_rules:
+  - id: medical-claim
+    description: Нельзя заявлять о лечебном или медицинском эффекте товара.
+    severity: critical
+
+  - id: unverifiable-superlative
+    description: Нельзя использовать недоказуемые превосходные степени.
+    severity: medium
+
+  - id: competitor-comparison
+    description: Нельзя сравнивать товар с конкурентами.
+    severity: medium

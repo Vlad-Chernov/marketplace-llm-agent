@@ -109,3 +109,19 @@ class Review(BaseModel):
         exclude=True,
         repr=False,
     )
+
+OrderStatus = Literal["created", "delivered", "cancelled", "returned"]
+
+
+class Order(BaseModel):
+    """Represents a marketplace order bound to one customer session."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    order_id: str = Field(pattern=r"^ORD-\d{6}$")
+    session_id: str = Field(min_length=1)
+    sku: str = Field(pattern=r"^[A-Z0-9][A-Z0-9-]*$", min_length=3)
+    status: OrderStatus
+    price: Decimal = Field(gt=0)
+    purchased_at: date
+    delivered_at: date | None = None
