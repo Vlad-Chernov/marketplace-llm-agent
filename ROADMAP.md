@@ -189,9 +189,9 @@ marketplace-llm-agent/
 
 ### Блок 1.2. Модели товара и карточки
 
-- [ ] Создать `Product`, `GeneratedContent`, `RuleViolation` и `PipelineResult`.
-- [ ] Явно отделить частичные `attributes` от скрытых `true_attributes`.
-- [ ] Проверить цены, SKU, категории и сериализацию JSON.
+- [x] Создать `Product`, `GeneratedContent`, `RuleViolation` и `PipelineResult`.
+- [x] Явно отделить частичные `attributes` от скрытых `true_attributes`.
+- [x] Проверить цены, SKU, категории и сериализацию JSON.
 - **Интерфейсы:** модели импортируются из `marketplace_agent.domain.models`.
 - **Результат:** единый контракт между генератором, LLM и оценкой.
 - **Проверка:** `tests/domain/test_product_models.py` проходит.
