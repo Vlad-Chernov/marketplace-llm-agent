@@ -272,10 +272,10 @@ marketplace-llm-agent/
 
 ### Блок 2.2. Общие контракты LLM
 
-- [ ] Простыми словами разобрать HTTP-запрос, API-ключ, JSON и статус ответа.
-- [ ] Создать `Message`, `LLMResponse` и протокол `LLMClient` по §2.2.
-- [ ] Добавить методы `chat(messages, tools, response_schema, temperature, max_tokens)` и `embed(texts)`.
-- [ ] Создать `FakeLLMClient` для тестов без сети.
+- [x] Простыми словами разобрать HTTP-запрос, API-ключ, JSON и статус ответа.
+- [x] Создать `Message`, `LLMResponse` и протокол `LLMClient` по §2.2.
+- [x] Добавить методы `chat(messages, tools, response_schema, temperature, max_tokens)` и `embed(texts)`.
+- [x] Создать `FakeLLMClient` для тестов без сети.
 - **Интерфейс:** `LLMClient.chat(...) -> LLMResponse`; `LLMClient.embed(texts) -> list[list[float]]`.
 - **Результат:** стабильный контракт, от которого не зависит выбор SDK.
 - **Проверка:** тестовый клиент проходит контрактные тесты без API-ключа.
