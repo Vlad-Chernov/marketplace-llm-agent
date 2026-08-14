@@ -1,3 +1,4 @@
+from datetime import date
 from decimal import Decimal
 from typing import Any, Literal, Self
 
@@ -85,3 +86,26 @@ class PipelineResult(BaseModel):
     violations: list[RuleViolation] = Field(default_factory=list)
     attempts: int = Field(ge=0)
     status: PipelineStatus
+
+class Review(BaseModel):
+    """Represents one customer review and its hidden evaluation labels."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    review_id: str = Field(pattern=r"^REV-\d{6}$")
+    sku: str = Field(pattern=r"^[A-Z0-9][A-Z0-9-]*$", min_length=3)
+    rating: int = Field(ge=1, le=5)
+    text: str = Field(min_length=1)
+    created_at: date
+    helpful_count: int = Field(ge=0)
+    defect_label: str | None = Field(default=None, exclude=True, repr=False)
+    contains_personal_data: bool = Field(
+        default=False,
+        exclude=True,
+        repr=False,
+    )
+    is_delivery_review: bool = Field(
+        default=False,
+        exclude=True,
+        repr=False,
+    )
