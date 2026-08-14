@@ -154,10 +154,10 @@ marketplace-llm-agent/
 
 ### Блок 0.4. Python и uv
 
-- [ ] Проверить архитектуру Mac и доступную версию Python.
-- [ ] Установить `uv` официальным способом.
-- [ ] Создать `pyproject.toml`, виртуальное окружение и пакет `src/marketplace_agent`.
-- [ ] Добавить pytest и Ruff как зависимости разработки.
+- [x] Проверить архитектуру Mac и доступную версию Python.
+- [x] Установить `uv` официальным способом.
+- [x] Создать `pyproject.toml`, виртуальное окружение и пакет `src/marketplace_agent`.
+- [x] Добавить pytest и Ruff как зависимости разработки.
 - **Результат:** воспроизводимое Python-окружение.
 - **Проверка:** `uv run python --version`, `uv run pytest --version`, `uv run ruff --version` завершаются успешно.
 - **Коммит:** `build: initialize Python project with uv`.
