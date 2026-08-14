@@ -164,11 +164,11 @@ marketplace-llm-agent/
 
 ### Блок 0.5. Инженерные файлы
 
-- [ ] Создать `DECISIONS.md`, `EXPERIMENTS.md`, `README.md`, `docs/ARCHITECTURE.md`, `docs/AI_USAGE.md`, `docs/AGENT_FAILURES.md`, `docs/DEMO.md` и `evals/REPORT.md` с зафиксированной структурой разделов.
-- [ ] Зафиксировать требования: минимум восемь записей в журнале решений и минимум пять контролируемых экспериментов.
-- [ ] Добавить команды `make test`, `make lint` и `make check`.
-- [ ] Добавить `make setup`, который воспроизводимо устанавливает зависимости проекта.
-- [ ] Написать первый smoke-тест импорта пакета.
+- [x] Создать `DECISIONS.md`, `EXPERIMENTS.md`, `README.md`, `docs/ARCHITECTURE.md`, `docs/AI_USAGE.md`, `docs/AGENT_FAILURES.md`, `docs/DEMO.md` и `evals/REPORT.md` с зафиксированной структурой разделов.
+- [x] Зафиксировать требования: минимум восемь записей в журнале решений и минимум пять контролируемых экспериментов.
+- [x] Добавить команды `make test`, `make lint` и `make check`.
+- [x] Добавить `make setup`, который воспроизводимо устанавливает зависимости проекта.
+- [x] Написать первый smoke-тест импорта пакета.
 - **Результат:** единая команда проверки проекта.
 - **Проверка:** `make check` проходит.
 - **Коммит:** `chore: add project quality workflow`.
