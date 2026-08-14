@@ -1,0 +1,142 @@
+category: laptops
+attributes:
+  - key: screen_diagonal_in
+    label: Screen diagonal
+    type: number
+    required: true
+    unit: in
+    synonyms:
+      - диагональ
+      - размер экрана
+    affects_filter: true
+
+  - key: screen_resolution
+    label: Screen resolution
+    type: enum
+    required: false
+    enum_values:
+      - 1920x1080
+      - 2560x1600
+      - 2880x1800
+    synonyms:
+      - разрешение
+    affects_filter: true
+
+  - key: processor
+    label: Processor
+    type: string
+    required: true
+    synonyms:
+      - процессор
+      - cpu
+    affects_filter: true
+
+  - key: ram_gb
+    label: RAM
+    type: enum
+    required: true
+    enum_values:
+      - "8"
+      - "16"
+      - "32"
+      - "64"
+    unit: GB
+    synonyms:
+      - оперативная память
+      - озу
+    affects_filter: true
+
+  - key: storage_gb
+    label: Storage capacity
+    type: enum
+    required: true
+    enum_values:
+      - "256"
+      - "512"
+      - "1024"
+      - "2048"
+    unit: GB
+    synonyms:
+      - накопитель
+      - ssd
+    affects_filter: true
+
+  - key: graphics_card
+    label: Graphics card
+    type: string
+    required: false
+    synonyms:
+      - видеокарта
+      - gpu
+    affects_filter: true
+
+  - key: operating_system
+    label: Operating system
+    type: enum
+    required: false
+    enum_values:
+      - Windows 11
+      - Linux
+      - No OS
+    synonyms:
+      - ос
+      - операционная система
+    affects_filter: true
+
+  - key: weight_kg
+    label: Weight
+    type: number
+    required: false
+    unit: kg
+    synonyms:
+      - вес
+    affects_filter: true
+
+  - key: battery_capacity_wh
+    label: Battery capacity
+    type: integer
+    required: false
+    unit: Wh
+    synonyms:
+      - ёмкость аккумулятора
+      - батарея
+    affects_filter: false
+
+  - key: color
+    label: Color
+    type: enum
+    required: false
+    enum_values:
+      - black
+      - silver
+      - gray
+      - blue
+    synonyms:
+      - цвет
+    affects_filter: true
+
+  - key: keyboard_layout
+    label: Keyboard layout
+    type: enum
+    required: false
+    enum_values:
+      - RU
+      - EN
+      - RU/EN
+    synonyms:
+      - раскладка клавиатуры
+    affects_filter: true
+
+  - key: refresh_rate_hz
+    label: Refresh rate
+    type: enum
+    required: false
+    enum_values:
+      - "60"
+      - "90"
+      - "120"
+      - "144"
+    unit: Hz
+    synonyms:
+      - частота обновления
+    affects_filter: true
