@@ -83,8 +83,13 @@ class OpenAICompatibleLLMClient:
             raise LLMProviderError("LLM request failed.") from error
 
         if response.status_code >= 400:
+            error_message = response.json().get("error", {}).get(
+                "message",
+                "Unknown provider error.",
+            )
             raise LLMProviderError(
-                f"LLM provider returned HTTP {response.status_code}."
+                f"LLM provider returned HTTP {response.status_code}: "
+                f"{error_message}"
             )
 
         return response.json()

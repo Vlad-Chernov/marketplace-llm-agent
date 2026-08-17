@@ -39,7 +39,7 @@ def chat_structured(
             if attempt < max_retries:
                 current_messages.append(
                     Message(
-                        role="system",
+                        role="user",
                         content=(
                             "Предыдущий ответ не прошёл проверку. "
                             "Верни только валидный JSON по указанной схеме."
