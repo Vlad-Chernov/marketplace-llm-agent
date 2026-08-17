@@ -13,3 +13,6 @@ check: test lint
 
 data:
 	PYTHONPATH=src uv run python -m marketplace_agent.data_generation.generate
+
+eval-smoke:
+	PYTHONPATH=src uv run python scripts/llm_smoke.py
