@@ -7,9 +7,10 @@ test:
 	uv run pytest
 
 lint:
+	uv run ruff check --fix src tests
 	uv run ruff check src tests
 
-check: test lint
+check: lint test
 
 data:
 	PYTHONPATH=src uv run python -m marketplace_agent.data_generation.generate
