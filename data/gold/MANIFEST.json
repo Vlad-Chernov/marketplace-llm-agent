@@ -1,0 +1,7 @@
+{
+  "suite": "mvp",
+  "version": "1.0",
+  "seed": 42,
+  "split": "frozen",
+  "target_case_count": 25
+}

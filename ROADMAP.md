@@ -339,9 +339,9 @@ marketplace-llm-agent/
 
 ### Блок 3.1. Устройство золотого набора
 
-- [ ] Разобрать отличие теста кода от оценки качества модели.
-- [ ] Создать версионируемую схему примера с `id`, `question`, `type`, `expected_answer`, `expected_citations`, `must_call_tools`, `must_not_contain`, `origin` и `notes`.
-- [ ] Зафиксировать неизменяемый split и `seed`.
+- [x] Разобрать отличие теста кода от оценки качества модели.
+- [x] Создать версионируемую схему примера с `id`, `question`, `type`, `expected_answer`, `expected_citations`, `must_call_tools`, `must_not_contain`, `origin` и `notes`.
+- [x] Зафиксировать неизменяемый split и `seed`.
 - **Результат:** формат набора, который не смешивается с обучающими примерами промпта.
 - **Проверка:** схема отвергает пример без типа или эталона.
 - **Коммит:** `feat: define golden dataset schema`.
