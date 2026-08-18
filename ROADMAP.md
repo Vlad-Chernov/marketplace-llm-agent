@@ -367,10 +367,10 @@ marketplace-llm-agent/
 
 ### Блок 3.4. Общие метрики системы
 
-- [ ] Создать `Citation` и `AgentAnswer` с `answer`, `citations`, `numbers`, `confidence`, `refusal` и `trace_id`.
-- [ ] Реализовать программные Quote Validity, Citation Precision/Recall, Numeric Accuracy, Tool-Call Accuracy и Correct/False Refusal Rate.
-- [ ] Подготовить интерфейсы Task Success Rate и Groundedness для задач, где нужен проверяемый судья.
-- [ ] Написать тесты каждой метрики на вручную рассчитанных примерах.
+- [x] Создать `Citation` и `AgentAnswer` с `answer`, `citations`, `numbers`, `confidence`, `refusal` и `trace_id`.
+- [x] Реализовать программные Quote Validity, Citation Precision/Recall, Numeric Accuracy, Tool-Call Accuracy и Correct/False Refusal Rate.
+- [x] Подготовить интерфейсы Task Success Rate и Groundedness для задач, где нужен проверяемый судья.
+- [x] Написать тесты каждой метрики на вручную рассчитанных примерах.
 - **Результат:** общий набор метрик части 2 готов до развития агента.
 - **Проверка:** ручные и программные расчёты совпадают.
 - **Коммит:** `feat: add shared system evaluation metrics`.

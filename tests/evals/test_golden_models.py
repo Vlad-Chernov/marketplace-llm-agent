@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from marketplace_agent.evals.models import GoldenCase
+from marketplace_agent.evals.models import AgentAnswer, Citation, GoldenCase
 
 
 def test_creates_golden_case() -> None:
@@ -41,3 +41,21 @@ def test_creates_golden_case() -> None:
 def test_rejects_case_without_type_or_expected_answer(data: dict) -> None:
     with pytest.raises(ValidationError):
         GoldenCase(**data)
+
+def test_creates_agent_answer_with_traceability() -> None:
+    answer = AgentAnswer(
+        answer="Возврат возможен в течение 14 дней после получения.",
+        citations=[
+            Citation(
+                source_id="support:returns",
+                quote="Покупатель может вернуть ноутбук надлежащего качества в течение 14 календарных дней после получения.",
+            )
+        ],
+        numbers={"return_period_days": 14},
+        confidence=0.9,
+        refusal=False,
+        trace_id="run-001",
+    )
+
+    assert answer.citations[0].source_id == "support:returns"
+    assert answer.numbers["return_period_days"] == 14
