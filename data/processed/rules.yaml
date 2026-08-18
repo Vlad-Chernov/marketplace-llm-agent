@@ -25,6 +25,14 @@ deterministic_rules:
       - title
       - description
     severity: high
+    
+  - id: emoji-spam
+    description: Карточка не должна содержать более двух эмодзи.
+    fields:
+      - title
+      - description
+    max_count: 2
+    severity: low
 
 semantic_rules:
   - id: medical-claim
