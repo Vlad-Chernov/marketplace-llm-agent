@@ -9,3 +9,4 @@ __pycache__/
 data/generated/
 data/synthetic/
 data/traces/
+evals/runs/
