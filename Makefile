@@ -7,8 +7,8 @@ test:
 	uv run pytest
 
 lint:
-	uv run ruff check --fix src tests evals/run_eval.py
-	uv run ruff check src tests evals/run_eval.py
+	uv run ruff check --fix src tests evals/run_eval.py evals/compare_content_pipeline.py
+	uv run ruff check src tests evals/run_eval.py evals/compare_content_pipeline.py
 
 check: lint test
 

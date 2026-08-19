@@ -9,7 +9,10 @@ def create_llm_client(settings: Settings) -> OpenAICompatibleLLMClient:
         return OpenAICompatibleLLMClient(
             api_key=settings.groq_api_key,
             base_url="https://api.groq.com/openai/v1",
-            model="groq/compound-mini",
+            model=settings.groq_model,
+            reasoning_effort=(
+                "none" if settings.groq_model.startswith("qwen/") else None
+                ),
         )
 
     return OpenAICompatibleLLMClient(

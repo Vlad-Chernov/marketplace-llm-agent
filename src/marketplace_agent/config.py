@@ -14,6 +14,7 @@ class Settings:
     llm_provider: LLMProviderName
     groq_api_key: str
     openrouter_api_key: str
+    groq_model: str = "groq/compound-mini"
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -37,4 +38,5 @@ class Settings:
             llm_provider=provider,
             groq_api_key=groq_api_key,
             openrouter_api_key=openrouter_api_key,
+            groq_model=os.getenv("GROQ_MODEL", "groq/compound-mini"),
         )

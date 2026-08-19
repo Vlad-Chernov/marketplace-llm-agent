@@ -8,6 +8,31 @@ from marketplace_agent.llm.structured import StructuredOutputError, chat_structu
 class ExtractedRam(BaseModel):
     ram_gb: int
 
+class RecordingLLMClient:
+    def __init__(self) -> None:
+        self.max_tokens: int | None = None
+
+    def chat(
+        self,
+        messages: list[Message],
+        tools: list[dict[str, object]] | None,
+        response_schema: type[BaseModel] | None,
+        temperature: float,
+        max_tokens: int,
+    ) -> LLMResponse:
+        del messages, tools, response_schema, temperature
+        self.max_tokens = max_tokens
+        return LLMResponse(
+            content='{"ram_gb": 16}',
+            model="fake-model",
+            prompt_tokens=1,
+            completion_tokens=1,
+        )
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        del texts
+        return []
+
 
 def test_retries_invalid_json_and_returns_valid_model() -> None:
     client = FakeLLMClient(
@@ -56,3 +81,15 @@ def test_raises_controlled_error_after_retries_are_exhausted() -> None:
             response_schema=ExtractedRam,
             max_retries=0,
         )
+
+def test_requests_enough_tokens_for_structured_content() -> None:
+    client = RecordingLLMClient()
+
+    chat_structured(
+        client=client,
+        messages=[Message(role="user", content="Верни JSON.")],
+        response_schema=ExtractedRam,
+        max_retries=0,
+    )
+
+    assert client.max_tokens == 1024

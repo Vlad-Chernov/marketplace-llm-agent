@@ -1,0 +1,11 @@
+{
+  "suite": "content_pipeline",
+  "catalog_seed": 42,
+  "noise_seed": 4242,
+  "catalog_size": 40,
+  "skus": [
+    "LAP-0001",
+    "LAP-0002",
+    "LAP-0003"
+  ]
+}

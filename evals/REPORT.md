@@ -26,3 +26,33 @@ Evaluation results will be added after the relevant modules are implemented.
 | cac561167a2a475a8abf5e4ff486214a | mvp | baseline-attribute-v1 | 9 | 6 | 837 | 0.000000 | attribute_f1=0.051, hallucination_rate=0.800 |
 | 05cacfe5224248d095d2a92d4ab30ac7 | mvp | baseline-attribute-openrouter-v1 | 9 | 0 | 9159 | 0.000000 | attribute_f1=0.043, hallucination_rate=0.818 |
 | b6100c2c24654c1b9683cea268ceb00e | mvp | baseline-attribute-strict-v1 | 9 | 0 | 12238 | 0.000000 | attribute_f1=0.222, hallucination_rate=0.000 |
+
+## Content pipeline comparison: 40921faa48d64c1c8f8af4187fddc21d
+
+| Version | Attribute F1 | Hallucination rate | Violations | Average latency, ms | Cost, USD |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| baseline-no-repair | 0.000 | 0.000 | 0 | 77887 | 0.000000 |
+| validated-pipeline-v1 | 0.000 | 0.000 | 0 | 39190 | 0.000000 |
+
+Исправленные SKU: нет.
+Ухудшившиеся SKU: нет.
+
+## Content pipeline comparison: 0538b2941a304507854a902e973a5fd2
+
+| Version | Attribute F1 | Hallucination rate | Violations | Average latency, ms | Cost, USD |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| baseline-no-repair | 0.000 | 0.000 | 0 | 1596 | 0.000000 |
+| validated-pipeline-qwen-v1 | 0.000 | 0.000 | 0 | 0 | 0.000000 |
+
+Исправленные SKU: нет.
+Ухудшившиеся SKU: нет.
+
+## Content pipeline comparison: 8b25ddd1e76b41c3a1a8ef92f2f21316
+
+| Version | Attribute F1 | Hallucination rate | Violations | Average latency, ms | Cost, USD |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| baseline-no-repair | 0.971 | 0.000 | 10 | 20455 | 0.000000 |
+| validated-pipeline-qwen-v2 | 0.971 | 0.000 | 1 | 46288 | 0.000000 |
+
+Исправленные SKU: LAP-0001.
+Ухудшившиеся SKU: нет.

@@ -28,7 +28,7 @@ def chat_structured(
             tools=None,
             response_schema=response_schema,
             temperature=0.0,
-            max_tokens=512,
+            max_tokens=1024,
         )
 
         try:
