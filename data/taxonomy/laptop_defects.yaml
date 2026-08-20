@@ -1,0 +1,40 @@
+categories:
+  - id: battery_drain
+    label: Быстрый разряд батареи
+    description: Батарея разряжается заметно быстрее ожидаемого.
+    examples:
+      - Батарея слишком быстро разряжается.
+
+  - id: overheating
+    label: Перегрев
+    description: Ноутбук сильно нагревается во время работы.
+    examples:
+      - Ноутбук сильно перегревается во время работы.
+
+  - id: screen_flicker
+    label: Мерцание экрана
+    description: Экран периодически мерцает или мигает.
+    examples:
+      - Экран периодически мерцает.
+
+  - id: keyboard_failure
+    label: Неисправность клавиатуры
+    description: Клавиши не работают или перестают работать.
+    examples:
+      - Несколько клавиш перестали работать.
+
+  - id: wifi_disconnect
+    label: Отключение Wi-Fi
+    description: Wi-Fi самопроизвольно теряет соединение.
+    examples:
+      - Wi-Fi постоянно отключается.
+
+  - id: other
+    label: Другой дефект
+    description: Есть конкретная проблема с товаром, но она не входит в известные классы.
+    examples: []
+
+  - id: no_defect
+    label: Нет дефекта
+    description: В отзыве нет конкретного дефекта товара.
+    examples: []
