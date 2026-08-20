@@ -40,7 +40,7 @@
 - Produces: `PolicyChunk` и `load_policy_chunks(path) -> list[PolicyChunk]`.
 - Used later by: `BM25Retriever`, `VectorRetriever` и генератор ответа с цитатами.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```python
 from pathlib import Path
@@ -107,7 +107,7 @@ def test_rejects_policy_without_non_empty_text(tmp_path: Path) -> None:
         load_policy_chunks(tmp_path)
 ```
 
-- [ ] **Step 2: Run tests and confirm the expected failure**
+- [x] **Step 2: Run tests and confirm the expected failure**
 
 ```bash
 uv run pytest tests/retrieval/test_documents.py -v
@@ -115,7 +115,7 @@ uv run pytest tests/retrieval/test_documents.py -v
 
 Expected: collection error because `marketplace_agent.retrieval` does not exist.
 
-- [ ] **Step 3: Create the package and minimal parser**
+- [x] **Step 3: Create the package and minimal parser**
 
 Create an empty `src/marketplace_agent/retrieval/__init__.py`.
 
@@ -250,7 +250,7 @@ def _read_paragraphs_after_heading(lines: list[str]) -> list[str]:
     return paragraphs
 ```
 
-- [ ] **Step 4: Run focused tests**
+- [x] **Step 4: Run focused tests**
 
 ```bash
 uv run pytest tests/retrieval/test_documents.py -v
@@ -258,7 +258,7 @@ uv run pytest tests/retrieval/test_documents.py -v
 
 Expected: three passing tests.
 
-- [ ] **Step 5: Run the project check**
+- [x] **Step 5: Run the project check**
 
 ```bash
 make check
@@ -266,7 +266,7 @@ make check
 
 Expected: Ruff completes without errors and all tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/marketplace_agent/retrieval/__init__.py src/marketplace_agent/retrieval/documents.py tests/retrieval/test_documents.py
