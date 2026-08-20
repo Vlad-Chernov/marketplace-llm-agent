@@ -40,7 +40,7 @@
 - Produces: `SearchResult` and `BM25Retriever.search(query, k, filters=None)`.
 - Used later by: hybrid retrieval and the policy-answer pipeline.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```python
 from pathlib import Path
@@ -114,7 +114,7 @@ def test_assigns_ranks_and_returns_empty_for_invalid_requests() -> None:
     ) == []
 ```
 
-- [ ] **Step 2: Run tests and confirm the expected failure**
+- [x] **Step 2: Run tests and confirm the expected failure**
 
 ```bash
 uv run pytest tests/retrieval/test_lexical.py -v
@@ -122,7 +122,7 @@ uv run pytest tests/retrieval/test_lexical.py -v
 
 Expected: collection error because `marketplace_agent.retrieval.lexical` does not exist.
 
-- [ ] **Step 3: Implement the minimal BM25 retriever**
+- [x] **Step 3: Implement the minimal BM25 retriever**
 
 Create `src/marketplace_agent/retrieval/lexical.py` with:
 
@@ -250,7 +250,7 @@ def _matches_filters(
     )
 ```
 
-- [ ] **Step 4: Run focused tests**
+- [x] **Step 4: Run focused tests**
 
 ```bash
 uv run pytest tests/retrieval/test_lexical.py -v
@@ -258,7 +258,7 @@ uv run pytest tests/retrieval/test_lexical.py -v
 
 Expected: four passing tests.
 
-- [ ] **Step 5: Run the project check**
+- [x] **Step 5: Run the project check**
 
 ```bash
 make check
@@ -266,7 +266,7 @@ make check
 
 Expected: Ruff completes without errors and all tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/marketplace_agent/retrieval/lexical.py tests/retrieval/test_lexical.py
