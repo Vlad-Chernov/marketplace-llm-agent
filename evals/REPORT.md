@@ -56,3 +56,25 @@ Evaluation results will be added after the relevant modules are implemented.
 
 Исправленные SKU: LAP-0001.
 Ухудшившиеся SKU: нет.
+
+## Review classification evaluation
+
+Overall recall: 1.000
+
+Mean absolute frequency error: 0.000
+
+### Recall by defect
+
+- battery_drain: 1.000
+- keyboard_failure: 1.000
+- overheating: 1.000
+- screen_flicker: 1.000
+- wifi_disconnect: 1.000
+
+### Weak defects
+
+- none
+
+### Typical errors
+
+- none
