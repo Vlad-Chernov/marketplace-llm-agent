@@ -149,6 +149,29 @@ class ReviewRepository:
 class OrderRepository:
     """Persist and retrieve order models in SQLite."""
 
+    def get_by_id(self, order_id: str) -> Order | None:
+        """Return one order by ID, or None when it does not exist."""
+
+        with sqlite3.connect(self.database_path) as connection:
+            connection.row_factory = sqlite3.Row
+            row = connection.execute(
+                "SELECT * FROM orders WHERE order_id = ?",
+                (order_id,),
+            ).fetchone()
+
+        if row is None:
+            return None
+
+        return Order(
+            order_id=row["order_id"],
+            session_id=row["session_id"],
+            sku=row["sku"],
+            status=row["status"],
+            price=row["price"],
+            purchased_at=row["purchased_at"],
+            delivered_at=row["delivered_at"],
+        )   
+
     def __init__(self, database_path: Path) -> None:
         self.database_path = database_path
 
