@@ -26,7 +26,8 @@
 - Create `src/marketplace_agent/retrieval/chunking.py`: deterministic small, medium, and large chunk variants.
 - Create `src/marketplace_agent/retrieval/reranker.py`: reranker protocol and cross-encoder implementation.
 - Modify `src/marketplace_agent/evals/retrieval_metrics.py`: identifier-aware Recall@k, MRR, and latency.
-- Create `evals/compare_retrieval_experiments.py`: execute controlled experiment groups and persist JSON.
+- Create `src/marketplace_agent/evals/retrieval_experiments.py`: testable controlled-experiment configuration and evaluation functions.
+- Create `evals/compare_retrieval_experiments.py`: thin CLI that persists JSON produced by the source module.
 - Create `tests/retrieval/test_chunking.py`, `tests/retrieval/test_reranker.py`, and `tests/evals/test_retrieval_experiments.py`.
 - Modify `tests/evals/test_retrieval_metrics.py`, `Makefile`, `EXPERIMENTS.md`, and `ROADMAP.md`.
 
@@ -226,13 +227,14 @@ git commit -m "eval: measure retrieval MRR and latency"
 
 **Files:**
 - Create: `tests/evals/test_retrieval_experiments.py`
+- Create: `src/marketplace_agent/evals/retrieval_experiments.py`
 - Create: `evals/compare_retrieval_experiments.py`
 - Modify: `Makefile`
 - Modify: `EXPERIMENTS.md`
 
 **Interfaces:**
 - Consumes: chunk variants, `BM25Retriever`, `build_vector_index`, `VectorRetriever`, `HybridRetriever`, `CrossEncoderReranker`, and `evaluate_retriever`.
-- Produces: one `evals/runs/retrieval-experiments-<uuid>.json` and command `make compare-retrieval`.
+- Produces: `build_experiment_groups(...)` and `evaluate_experiment_groups(...)` for unit tests, one JSON nested by `chunk_size` and `strategy`, and command `make compare-retrieval`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -263,7 +265,7 @@ def main() -> None:
     print(f"Results: {results_path}")
 ```
 
-Build an isolated temporary Chroma index for each chunk variant, then remove only that exact temporary directory after its evaluations complete. The chunk-size group evaluates hybrid with document relevance. The strategy group evaluates vector, hybrid, and a wrapper whose `search` calls hybrid with ten candidates then calls `reranker.rerank(query, candidates, k)` with chunk relevance. Add `compare-retrieval` to `.PHONY` and call the script.
+Build an isolated temporary Chroma index for each chunk variant, then remove only that exact temporary directory after its evaluations complete. The chunk-size group evaluates hybrid with document relevance. The strategy group evaluates vector, hybrid, and a wrapper whose `search` calls hybrid with ten candidates then calls `reranker.rerank(query, candidates, k)` with chunk relevance. Prefix strategy expected IDs with `medium-` before evaluating, because the medium index uses variant-specific IDs. Add `compare-retrieval` to `.PHONY` and call the script.
 
 Add `append_experiment_summary(evaluations, experiments_path, results_path)`. It writes the six real aggregate rows and chooses a strategy winner by the tuple `(recall_at_k, mrr, -mean_latency_ms)`, so the conclusion is derived from the stored measurements rather than manually entered.
 
@@ -275,7 +277,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add evals/compare_retrieval_experiments.py tests/evals/test_retrieval_experiments.py Makefile
+git add src/marketplace_agent/evals/retrieval_experiments.py evals/compare_retrieval_experiments.py tests/evals/test_retrieval_experiments.py Makefile
 git commit -m "eval: compare chunking hybrid retrieval and reranking"
 ```
 

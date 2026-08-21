@@ -1,4 +1,4 @@
-.PHONY: setup test lint check data ingest evaluate-retrieval
+.PHONY: setup test lint check data ingest evaluate-retrieval compare-retrieval
 
 setup:
 	uv sync --all-groups
@@ -7,8 +7,8 @@ test:
 	uv run pytest
 
 lint:
-	uv run ruff check --fix src tests evals/run_eval.py evals/compare_content_pipeline.py evals/run_review_eval.py scripts/ingest_policies.py evals/evaluate_retrieval.py
-	uv run ruff check src tests evals/run_eval.py evals/compare_content_pipeline.py evals/run_review_eval.py scripts/ingest_policies.py evals/evaluate_retrieval.py
+	uv run ruff check --fix src tests evals/run_eval.py evals/compare_content_pipeline.py evals/run_review_eval.py scripts/ingest_policies.py evals/evaluate_retrieval.py evals/compare_retrieval_experiments.py
+	uv run ruff check src tests evals/run_eval.py evals/compare_content_pipeline.py evals/run_review_eval.py scripts/ingest_policies.py evals/evaluate_retrieval.py evals/compare_retrieval_experiments.py
 
 check: lint test
 
@@ -23,3 +23,6 @@ eval-smoke:
 
 evaluate-retrieval:
 	uv run python evals/evaluate_retrieval.py
+
+compare-retrieval:
+	uv run python evals/compare_retrieval_experiments.py

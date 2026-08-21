@@ -28,7 +28,7 @@ All variants are built deterministically from the four source policy documents:
 
 Each generated chunk has a unique variant-specific `chunk_id`, while retaining its original `document_id`, `policy_type`, heading, and text. Therefore chunk-size experiments judge relevance by `document_id`: the same user question remains relevant to the same policy document regardless of how that document is segmented.
 
-The existing fixed-chunk comparison of vector, hybrid, and hybrid plus reranker continues to judge relevance by `chunk_id`.
+The existing fixed-chunk comparison of vector, hybrid, and hybrid plus reranker continues to judge relevance by `chunk_id`. Before that comparison, every expected source ID is deterministically prefixed with `medium-`, matching the IDs of the medium index.
 
 ## Metrics and stored results
 
@@ -43,7 +43,7 @@ The evaluator runs two groups on the same golden queries:
 1. Compare `hybrid-small`, `hybrid-medium`, and `hybrid-large`. Only chunk size varies; relevance is checked by `document_id`.
 2. Compare `vector-medium`, `hybrid-medium`, and `hybrid-reranked-medium`. Only retrieval/reranking strategy varies; relevance is checked by `chunk_id`.
 
-Each run writes JSON with per-query results to `evals/runs/`. `EXPERIMENTS.md` receives a compact aggregate table and a written conclusion identifying the selected configuration and trade-offs.
+Each run writes JSON with per-query results to `evals/runs/`, nested by `chunk_size` and `strategy`. This preserves the two `hybrid-medium` measurements, which use different relevance identifiers. `EXPERIMENTS.md` receives a compact aggregate table and a written conclusion identifying the selected configuration and trade-offs.
 
 ## Error handling and tests
 
