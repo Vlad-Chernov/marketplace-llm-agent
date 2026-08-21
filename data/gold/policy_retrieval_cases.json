@@ -1,0 +1,62 @@
+[
+  {
+    "id": "policy-001",
+    "query": "Где посмотреть статус доставки?",
+    "expected_chunk_ids": ["delivery-01"]
+  },
+  {
+    "id": "policy-002",
+    "query": "Товар повреждён при получении",
+    "expected_chunk_ids": ["delivery-02"]
+  },
+  {
+    "id": "policy-003",
+    "query": "Почему поддержка не говорит детали чужого заказа?",
+    "expected_chunk_ids": ["delivery-03"]
+  },
+  {
+    "id": "policy-004",
+    "query": "Можно ли обменять товар на аналогичную модель?",
+    "expected_chunk_ids": ["exchange-01"]
+  },
+  {
+    "id": "policy-005",
+    "query": "Какие условия для обмена исправного ноутбука?",
+    "expected_chunk_ids": ["exchange-02"]
+  },
+  {
+    "id": "policy-006",
+    "query": "Что будет, если похожего товара нет на складе?",
+    "expected_chunk_ids": ["exchange-03"]
+  },
+  {
+    "id": "policy-007",
+    "query": "Сколько дней можно вернуть ноутбук?",
+    "expected_chunk_ids": ["returns-01"]
+  },
+  {
+    "id": "policy-008",
+    "query": "В каком состоянии должен быть товар для возврата?",
+    "expected_chunk_ids": ["returns-02"]
+  },
+  {
+    "id": "policy-009",
+    "query": "Можно ли вернуть товар с производственным дефектом?",
+    "expected_chunk_ids": ["returns-03"]
+  },
+  {
+    "id": "policy-010",
+    "query": "Где указан гарантийный срок?",
+    "expected_chunk_ids": ["warranty-01"]
+  },
+  {
+    "id": "policy-011",
+    "query": "Какие неисправности покрывает гарантия?",
+    "expected_chunk_ids": ["warranty-02"]
+  },
+  {
+    "id": "policy-012",
+    "query": "Покрывает ли гарантия механические повреждения?",
+    "expected_chunk_ids": ["warranty-03"]
+  }
+]

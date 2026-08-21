@@ -44,7 +44,7 @@
 - Produces: `HybridRetriever.search(query, k, filters=None) -> list[SearchResult]`.
 - Used later by: retrieval evaluation and support answers.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```python
 from marketplace_agent.retrieval.documents import PolicyChunk
@@ -109,7 +109,7 @@ def test_passes_identical_filters_to_both_retrievers() -> None:
     assert vector.calls == [("вопрос", 10, {"document_id": "returns"})]
 ```
 
-- [ ] **Step 2: Run tests and confirm the expected failure**
+- [x] **Step 2: Run tests and confirm the expected failure**
 
 ```bash
 uv run pytest tests/retrieval/test_hybrid.py -v
@@ -117,13 +117,13 @@ uv run pytest tests/retrieval/test_hybrid.py -v
 
 Expected: collection error because `marketplace_agent.retrieval.hybrid` does not exist.
 
-- [ ] **Step 3: Implement `HybridRetriever`**
+- [x] **Step 3: Implement `HybridRetriever`**
 
 Create a `Retriever` protocol with `search(query, k, filters=None)`. Create `HybridRetriever` with constructor parameters `lexical`, `vector`, `rrf_k=60`, `candidate_k=10`.
 
 For both underlying result lists, sum `1 / (rrf_k + result.rank)` by `result.chunk.chunk_id`. Keep the associated chunk. Sort by descending RRF score, then `chunk_id`. Return at most `k` fresh `SearchResult` objects with ranks beginning at one. Empty query or non-positive `k` returns `[]`.
 
-- [ ] **Step 4: Run focused tests**
+- [x] **Step 4: Run focused tests**
 
 ```bash
 uv run pytest tests/retrieval/test_hybrid.py -v
@@ -145,7 +145,7 @@ Expected: two passing tests.
 - Produces: `RetrievalCase`, `RetrievalEvaluation`, `evaluate_retriever` and `append_retrieval_report`.
 - Used later by: `evals/evaluate_retrieval.py`.
 
-- [ ] **Step 1: Create the manual dataset**
+- [x] **Step 1: Create the manual dataset**
 
 Add twelve cases, one per source chunk, with these exact IDs and expected chunk IDs:
 
@@ -166,7 +166,7 @@ Add twelve cases, one per source chunk, with these exact IDs and expected chunk 
 ]
 ```
 
-- [ ] **Step 2: Write failing tests**
+- [x] **Step 2: Write failing tests**
 
 ```python
 import json
@@ -248,7 +248,7 @@ def test_calculates_mean_recall_at_five_per_query() -> None:
     assert [result.recall_at_k for result in evaluation.results] == [1.0, 0.5]
 ```
 
-- [ ] **Step 3: Run tests and confirm the expected failure**
+- [x] **Step 3: Run tests and confirm the expected failure**
 
 ```bash
 uv run pytest tests/evals/test_retrieval_dataset.py tests/evals/test_retrieval_metrics.py -v
@@ -256,7 +256,7 @@ uv run pytest tests/evals/test_retrieval_dataset.py tests/evals/test_retrieval_m
 
 Expected: import error because `marketplace_agent.evals.retrieval_metrics` does not exist.
 
-- [ ] **Step 4: Implement metrics**
+- [x] **Step 4: Implement metrics**
 
 Define Pydantic models:
 
@@ -268,7 +268,7 @@ Define Pydantic models:
 
 `append_retrieval_report(evaluations, report_path, k)` accepts a mapping of retriever names to evaluations and appends a Markdown section containing a Recall@k table plus a row for each case with missing chunk IDs.
 
-- [ ] **Step 5: Run focused tests**
+- [x] **Step 5: Run focused tests**
 
 ```bash
 uv run pytest tests/evals/test_retrieval_dataset.py tests/evals/test_retrieval_metrics.py -v
@@ -289,7 +289,7 @@ Expected: two passing tests.
 - Consumes: policy corpus, Chroma index, retrieval dataset and all three retrievers.
 - Produces: one JSON result file and one Markdown report section.
 
-- [ ] **Step 1: Create evaluation script**
+- [x] **Step 1: Create evaluation script**
 
 The script loads the 12 JSON cases with `RetrievalCase.model_validate`, then builds:
 
@@ -306,7 +306,7 @@ hybrid = HybridRetriever(bm25, vector)
 
 It calls `evaluate_retriever` for `bm25`, `vector` and `hybrid` with `k=5`, saves all `model_dump()` results to a UUID-named JSON file under `evals/runs/`, calls `append_retrieval_report`, then prints each Recall@5 and the result path.
 
-- [ ] **Step 2: Add Makefile target and lint coverage**
+- [x] **Step 2: Add Makefile target and lint coverage**
 
 Append `evals/evaluate_retrieval.py` to both existing Ruff command lines.
 
@@ -319,7 +319,7 @@ evaluate-retrieval:
 
 Add `evaluate-retrieval` to `.PHONY`.
 
-- [ ] **Step 3: Run the real comparison**
+- [x] **Step 3: Run the real comparison**
 
 ```bash
 make ingest
@@ -328,7 +328,7 @@ make evaluate-retrieval
 
 Expected: the index contains 12 chunks; the script prints Recall@5 for `bm25`, `vector` and `hybrid`; a per-query JSON file is created under `evals/runs/`; `evals/REPORT.md` receives a comparison table.
 
-- [ ] **Step 4: Run the project check**
+- [x] **Step 4: Run the project check**
 
 ```bash
 make check
@@ -336,7 +336,7 @@ make check
 
 Expected: Ruff completes without errors and all tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add ROADMAP.md Makefile data/gold/policy_retrieval_cases.json evals/REPORT.md evals/evaluate_retrieval.py src/marketplace_agent/retrieval/hybrid.py src/marketplace_agent/evals/retrieval_metrics.py tests/retrieval/test_hybrid.py tests/evals/test_retrieval_dataset.py tests/evals/test_retrieval_metrics.py

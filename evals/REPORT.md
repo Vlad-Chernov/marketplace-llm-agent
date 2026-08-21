@@ -78,3 +78,14 @@ Mean absolute frequency error: 0.000
 ### Typical errors
 
 - none
+
+## Policy retrieval comparison (Recall@5)
+
+| Retriever | Recall@k |
+| --- | --- |
+| bm25 | 1.000 |
+| vector | 1.000 |
+| hybrid | 1.000 |
+
+### Missing chunks
+
