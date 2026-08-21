@@ -47,7 +47,7 @@
 - Produces: `SentenceTransformerEmbedder`, `build_vector_index`, `VectorRetriever.open` and `VectorRetriever.search`.
 - Used later by: hybrid retrieval.
 
-- [ ] **Step 1: Add dependencies**
+- [x] **Step 1: Add dependencies**
 
 ```bash
 uv add chromadb sentence-transformers
@@ -55,7 +55,7 @@ uv add chromadb sentence-transformers
 
 Expected: `pyproject.toml` and `uv.lock` contain the two runtime dependencies.
 
-- [ ] **Step 2: Write failing tests**
+- [x] **Step 2: Write failing tests**
 
 ```python
 from pathlib import Path
@@ -154,7 +154,7 @@ def test_returns_empty_for_invalid_vector_requests(tmp_path: Path) -> None:
     ) == []
 ```
 
-- [ ] **Step 3: Run tests and confirm the expected failure**
+- [x] **Step 3: Run tests and confirm the expected failure**
 
 ```bash
 uv run pytest tests/retrieval/test_vector.py -v
@@ -162,7 +162,7 @@ uv run pytest tests/retrieval/test_vector.py -v
 
 Expected: collection error because `marketplace_agent.retrieval.vector` does not exist.
 
-- [ ] **Step 4: Implement the minimal vector retriever**
+- [x] **Step 4: Implement the minimal vector retriever**
 
 Define an `Embedder` protocol with these exact methods:
 
@@ -179,7 +179,7 @@ class Embedder(Protocol):
 
 `VectorRetriever.search` rejects empty queries and non-positive `k`. It translates supported filters into Chroma `where`; unknown keys return `[]`. It queries with one query embedding, reconstructs `PolicyChunk` from the ID and metadata, converts cosine distance to `score = 1 - distance`, and returns one-based `SearchResult` ranks.
 
-- [ ] **Step 5: Run focused tests**
+- [x] **Step 5: Run focused tests**
 
 ```bash
 uv run pytest tests/retrieval/test_vector.py -v
@@ -201,7 +201,7 @@ Expected: three passing tests.
 - Produces: persistent collection under `data/vector_store/`.
 - Used later by: `VectorRetriever.open` and the support-answer workflow.
 
-- [ ] **Step 1: Write the ingestion script**
+- [x] **Step 1: Write the ingestion script**
 
 ```python
 import sys
@@ -233,7 +233,7 @@ if __name__ == "__main__":
 
 Add `count` as a read-only `VectorRetriever` property returning the collection record count.
 
-- [ ] **Step 2: Configure Git ignore and Makefile**
+- [x] **Step 2: Configure Git ignore and Makefile**
 
 Append this exact line to `.gitignore`:
 
@@ -250,7 +250,7 @@ ingest:
 
 Add `scripts/ingest_policies.py` to both existing Ruff command lines in `Makefile`.
 
-- [ ] **Step 3: Run focused tests and build the real index**
+- [x] **Step 3: Run focused tests and build the real index**
 
 ```bash
 uv run pytest tests/retrieval/test_vector.py -v
@@ -259,7 +259,7 @@ make ingest
 
 Expected: three tests pass; the first run downloads the embedding model, then prints `Indexed chunks: 12`.
 
-- [ ] **Step 4: Run the project check**
+- [x] **Step 4: Run the project check**
 
 ```bash
 make check
@@ -267,7 +267,7 @@ make check
 
 Expected: Ruff completes without errors and all tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .gitignore Makefile pyproject.toml uv.lock scripts/ingest_policies.py src/marketplace_agent/retrieval/vector.py tests/retrieval/test_vector.py
