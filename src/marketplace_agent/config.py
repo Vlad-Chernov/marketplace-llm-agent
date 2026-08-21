@@ -29,9 +29,10 @@ class Settings:
         groq_api_key = os.getenv("GROQ_API_KEY", "")
         openrouter_api_key = os.getenv("OPENROUTER_API_KEY", "")
 
-        if not groq_api_key:
+        if provider == "groq" and not groq_api_key:
             raise ValueError("GROQ_API_KEY is required.")
-        if not openrouter_api_key:
+
+        if provider == "openrouter" and not openrouter_api_key:
             raise ValueError("OPENROUTER_API_KEY is required.")
 
         return cls(
