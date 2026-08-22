@@ -91,8 +91,8 @@ Mean absolute frequency error: 0.000
 
 ## MVP final evaluation: 42316d87f5d74235a40e2e28cf68936f
 
-Дата: 2026-08-22  
-Набор: 25 golden-кейсов  
+Дата: 2026-08-22<br>
+Набор: 25 golden-кейсов<br>
 Модель: qwen/qwen3.6-27b
 
 | Метрика | Результат |
