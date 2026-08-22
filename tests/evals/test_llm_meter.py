@@ -1,5 +1,8 @@
+import pytest
+
 from marketplace_agent.evals.llm_meter import MeteredLLMClient
 from marketplace_agent.llm.base import FakeLLMClient, LLMResponse, Message
+from marketplace_agent.llm.cache import CachedLLMClient
 
 
 def test_accumulates_tokens_and_cost_for_llm_calls() -> None:
@@ -89,3 +92,42 @@ def test_keeps_last_llm_response() -> None:
     )
 
     assert client.last_response == expected_response
+
+def test_does_not_bill_cached_llm_response() -> None:
+    cached_client = CachedLLMClient(
+        FakeLLMClient(
+            [
+                LLMResponse(
+                    content="Ответ",
+                    model="fake-model",
+                    prompt_tokens=100,
+                    completion_tokens=20,
+                )
+            ]
+        )
+    )
+    client = MeteredLLMClient(
+        cached_client,
+        input_price_per_million=1.0,
+        output_price_per_million=2.0,
+    )
+    messages = [Message(role="user", content="Вопрос")]
+
+    client.chat(
+        messages=messages,
+        tools=None,
+        response_schema=None,
+        temperature=0.0,
+        max_tokens=100,
+    )
+    client.chat(
+        messages=messages,
+        tools=None,
+        response_schema=None,
+        temperature=0.0,
+        max_tokens=100,
+    )
+
+    assert client.prompt_tokens == 100
+    assert client.completion_tokens == 20
+    assert client.cost_usd == pytest.approx(0.00014)

@@ -54,18 +54,22 @@ class MeteredLLMClient:
             max_tokens=max_tokens,
         )
         self.last_response = response        
-        self.prompt_tokens += response.prompt_tokens
-        self.completion_tokens += response.completion_tokens
         self.latency_ms += round((perf_counter() - started_at) * 1000)
-        self.cost_usd += (
-            response.prompt_tokens
-            / 1_000_000
-            * self._input_price_per_million
-            + response.completion_tokens
-            / 1_000_000
-            * self._output_price_per_million
-        )
-        return response
+        if not getattr(
+            self._inner_client,
+            "last_call_was_cache_hit",
+            False,
+        ):
+            self.prompt_tokens += response.prompt_tokens
+            self.completion_tokens += response.completion_tokens
+            self.cost_usd += (
+                response.prompt_tokens
+                / 1_000_000
+                * self._input_price_per_million
+                + response.completion_tokens
+                / 1_000_000
+                * self._output_price_per_million
+            )
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         """Delegate embedding requests without changing their metrics."""

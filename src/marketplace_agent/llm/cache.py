@@ -1,5 +1,6 @@
 import hashlib
 import json
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel
@@ -10,11 +11,17 @@ from marketplace_agent.llm.base import LLMClient, LLMResponse, Message
 class CachedLLMClient:
     """Cache identical LLM requests in memory."""
 
-    def __init__(self, inner_client: LLMClient) -> None:
+    def __init__(
+        self,
+        inner_client: LLMClient,
+        cache_path: Path | None = None,
+    ) -> None:
         self.inner_client = inner_client
-        self._chat_cache: dict[str, LLMResponse] = {}
+        self._cache_path = cache_path
+        self._chat_cache = self._load_cache()
         self.cache_hits = 0
         self.cache_misses = 0
+        self.last_call_was_cache_hit = False
 
     def chat(
         self,
@@ -36,8 +43,10 @@ class CachedLLMClient:
 
         if cache_key in self._chat_cache:
             self.cache_hits += 1
+            self.last_call_was_cache_hit = True
             return self._chat_cache[cache_key]
 
+        self.last_call_was_cache_hit = False
         self.cache_misses += 1
         self._chat_cache[cache_key] = self.inner_client.chat(
             messages=messages,
@@ -46,12 +55,59 @@ class CachedLLMClient:
             temperature=temperature,
             max_tokens=max_tokens,
         )
+        self._save_cache()
         return self._chat_cache[cache_key]
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         """Delegate embeddings without caching in the first MVP version."""
 
         return self.inner_client.embed(texts)
+
+    def _load_cache(self) -> dict[str, LLMResponse]:
+        if self._cache_path is None or not self._cache_path.exists():
+            return {}
+
+        raw_cache = json.loads(
+            self._cache_path.read_text(encoding="utf-8")
+        )
+        return {
+            key: LLMResponse.model_validate(response)
+            for key, response in raw_cache.items()
+        }
+
+    def _save_cache(self) -> None:
+        if self._cache_path is None:
+            return
+
+        self._cache_path.parent.mkdir(parents=True, exist_ok=True)
+        self._cache_path.write_text(
+            json.dumps(
+                {
+                    key: response.model_dump()
+                    for key, response in self._chat_cache.items()
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+
+    def _save_cache(self) -> None:
+        if self._cache_path is None:
+            return
+
+        self._cache_path.parent.mkdir(parents=True, exist_ok=True)
+        self._cache_path.write_text(
+            json.dumps(
+                {
+                    key: response.model_dump()
+                    for key, response in self._chat_cache.items()
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
 
     @staticmethod
     def _create_chat_cache_key(

@@ -43,7 +43,10 @@ def main() -> None:
 
     settings = Settings.from_environment()
     cached_llm = CachedLLMClient(
-        create_llm_client(settings)
+        create_llm_client(settings),
+        cache_path=(
+            PROJECT_ROOT / "data" / "cache" / "mvp-final-llm.json"
+        ),
     )
     meter = MeteredLLMClient(
         cached_llm,

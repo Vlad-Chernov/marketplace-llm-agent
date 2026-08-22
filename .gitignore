@@ -12,3 +12,4 @@ data/traces/
 evals/runs/
 data/vector_store/
 evals/results/
+data/cache/
