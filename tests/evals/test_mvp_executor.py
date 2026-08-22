@@ -6,6 +6,9 @@ from marketplace_agent.data_generation.specs import load_attribute_specs
 from marketplace_agent.evals.llm_meter import MeteredLLMClient
 from marketplace_agent.evals.models import GoldenCase
 from marketplace_agent.evals.mvp_executor import MvpCaseExecutor
+from marketplace_agent.evals.recording_registry import (
+    RecordingToolRegistry,
+)
 from marketplace_agent.llm.base import FakeLLMClient, LLMResponse
 from marketplace_agent.reviews.taxonomy import load_defect_taxonomy
 from marketplace_agent.support.tools import ToolResult
@@ -321,14 +324,17 @@ def test_executes_support_case() -> None:
         },
         origin="manual",
     )
+    support_registry = RecordingToolRegistry(
+    SupportPolicyRegistry()
+    )
     executor = MvpCaseExecutor(
         llm=meter,
         attribute_specs=load_attribute_specs(
             Path("data/specs/laptops.yaml")
         ),
-        support_registry=SupportPolicyRegistry(),
+        support_registry=support_registry,
     )
-
+    
     prediction = executor.execute(case)
 
     assert prediction.prediction == {
@@ -341,6 +347,7 @@ def test_executes_support_case() -> None:
     assert prediction.prompt_tokens == 50
     assert prediction.completion_tokens == 20
     assert prediction.cost_usd == pytest.approx(0.00009)
+    assert prediction.tool_calls == ["search_policy"]
 
 def test_executes_content_generation_case() -> None:
     final_response = '{"violations":[]}'

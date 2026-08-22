@@ -20,6 +20,9 @@ def main() -> None:
     print(f"Attribute F1: {summary.attribute_f1:.3f}")
     print(f"Validation accuracy: {summary.validation_accuracy:.3f}")
     print(f"Review recall: {summary.review_recall:.3f}")
+    print("Support tool accuracy: "
+        f"{summary.support_tool_accuracy:.3f}"
+    )
     print(f"Prompt tokens: {summary.total_prompt_tokens}")
     print(f"Completion tokens: {summary.total_completion_tokens}")
     print(f"Cost, USD: {summary.total_cost_usd:.6f}")

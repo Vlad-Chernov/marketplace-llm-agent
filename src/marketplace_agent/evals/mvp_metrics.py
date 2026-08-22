@@ -18,6 +18,7 @@ class MvpRunSummary:
     attribute_f1: float
     validation_accuracy: float
     review_recall: float
+    support_tool_accuracy: float
     total_prompt_tokens: int
     total_completion_tokens: int
     total_cost_usd: float
@@ -58,6 +59,12 @@ def summarize_mvp_run(run: EvaluationRun) -> MvpRunSummary:
         if result.case_type == "review_analysis"
     ]
 
+    support_results = [
+        result
+        for result in successful_results
+        if result.case_type in {"support", "no_answer", "adversarial"}
+    ]
+
     latencies = [result.latency_ms for result in run.results]
 
     return MvpRunSummary(
@@ -66,6 +73,7 @@ def summarize_mvp_run(run: EvaluationRun) -> MvpRunSummary:
         attribute_f1=attribute_metrics.overall.f1,
         validation_accuracy=_validation_accuracy(validation_results),
         review_recall=_review_recall(review_results),
+        support_tool_accuracy=_support_tool_accuracy(support_results),
         total_prompt_tokens=sum(
             result.prompt_tokens for result in run.results
         ),
@@ -101,6 +109,15 @@ def _review_recall(results: Sequence[Any]) -> float:
     )
     return correct_count / len(results)
 
+def _support_tool_accuracy(results: Sequence[Any]) -> float:
+    if not results:
+        return 0.0
+
+    correct_count = sum(
+        set(result.tool_calls) == set(result.expected_tool_calls)
+        for result in results
+    )
+    return correct_count / len(results)
 
 def _as_mapping(value: Any) -> Mapping[str, Any]:
     if not isinstance(value, Mapping):

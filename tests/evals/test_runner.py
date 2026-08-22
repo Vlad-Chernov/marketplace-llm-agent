@@ -29,6 +29,7 @@ def test_runs_case_and_persists_non_overwriting_results(tmp_path: Path) -> None:
             prompt_tokens=10,
             completion_tokens=5,
             cost_usd=0.00001,
+            tool_calls=["search_policy"],
         )
 
     run = run_evaluation(
@@ -44,6 +45,8 @@ def test_runs_case_and_persists_non_overwriting_results(tmp_path: Path) -> None:
     assert run.results[0].prediction == {"ram_gb": "16"}
     assert run.results[0].reference == {"ram_gb": "16"}
     assert run.results[0].model == "fake-model-v1"
+    assert run.results[0].tool_calls == ["search_policy"]
+    assert run.results[0].expected_tool_calls == []
     assert run.results[0].error is None
 
     first_path = save_run(run, tmp_path)
@@ -85,6 +88,7 @@ def test_loads_saved_evaluation_run(tmp_path: Path) -> None:
             prompt_tokens=10,
             completion_tokens=5,
             cost_usd=0.00002,
+            tool_calls=["search_policy"],
         ),
     )
     path = save_run(run, tmp_path)

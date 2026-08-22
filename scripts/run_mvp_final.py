@@ -12,6 +12,9 @@ from marketplace_agent.evals.mvp_final import (
     load_golden_cases,
     run_mvp_final,
 )
+from marketplace_agent.evals.recording_registry import (
+    RecordingToolRegistry,
+)
 from marketplace_agent.evals.runner import save_run
 from marketplace_agent.llm.factory import create_llm_client
 from marketplace_agent.retrieval.documents import load_policy_chunks
@@ -73,7 +76,7 @@ def main() -> None:
         defect_taxonomy=load_defect_taxonomy(
             PROJECT_ROOT / "data" / "taxonomy" / "laptop_defects.yaml"
         ),
-        support_registry=registry,
+        support_registry=RecordingToolRegistry(registry),
     )
 
     cases = load_golden_cases(

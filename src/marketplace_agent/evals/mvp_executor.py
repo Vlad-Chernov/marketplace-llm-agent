@@ -13,6 +13,9 @@ from marketplace_agent.domain.models import (
 )
 from marketplace_agent.evals.llm_meter import MeteredLLMClient
 from marketplace_agent.evals.models import GoldenCase
+from marketplace_agent.evals.recording_registry import (
+    RecordingToolRegistry,
+)
 from marketplace_agent.evals.runner import EvaluationPrediction
 from marketplace_agent.reviews.analyzer import classify_review
 from marketplace_agent.reviews.taxonomy import DefectTaxonomy
@@ -189,6 +192,12 @@ class MvpCaseExecutor:
         if self._support_registry is None:
             raise RuntimeError("Support case requires a tool registry.")
 
+        if isinstance(
+            self._support_registry,
+            RecordingToolRegistry,
+        ):
+            self._support_registry.reset()
+
         answer = SupportAgent(
             registry=self._support_registry,
             llm=self._llm,
@@ -199,6 +208,15 @@ class MvpCaseExecutor:
         )
 
         response = self._llm.last_response
+        tool_calls = (
+            list(self._support_registry.called_tools)
+            if isinstance(
+                self._support_registry,
+                RecordingToolRegistry,
+            )
+            else []
+        )
+
         return EvaluationPrediction(
             prediction={
                 "status": answer.status,
@@ -211,6 +229,7 @@ class MvpCaseExecutor:
             prompt_tokens=self._llm.prompt_tokens,
             completion_tokens=self._llm.completion_tokens,
             cost_usd=self._llm.cost_usd,
+            tool_calls=tool_calls,
         )
 
 def _load_validation_rules() -> tuple[

@@ -1,6 +1,6 @@
 import json
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from time import perf_counter
@@ -19,6 +19,7 @@ class EvaluationPrediction:
     prompt_tokens: int
     completion_tokens: int
     cost_usd: float
+    tool_calls: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -34,6 +35,8 @@ class EvaluationResult:
     prompt_tokens: int
     completion_tokens: int
     cost_usd: float
+    tool_calls: list[str] = field(default_factory=list)
+    expected_tool_calls: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -73,6 +76,7 @@ def run_evaluation(
                     prompt_tokens=0,
                     completion_tokens=0,
                     cost_usd=0.0,
+                    expected_tool_calls=case.must_call_tools,
                 )
             )
             continue
@@ -90,6 +94,8 @@ def run_evaluation(
                 prompt_tokens=prediction.prompt_tokens,
                 completion_tokens=prediction.completion_tokens,
                 cost_usd=prediction.cost_usd,
+                tool_calls=prediction.tool_calls,
+                expected_tool_calls=case.must_call_tools,
             )
         )
 

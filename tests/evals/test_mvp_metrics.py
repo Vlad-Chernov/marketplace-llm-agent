@@ -68,3 +68,32 @@ def test_summarizes_mvp_run_quality_and_resources() -> None:
     assert summary.total_cost_usd == pytest.approx(0.00012)
     assert summary.latency_p50_ms == 20
     assert summary.latency_p95_ms == 50
+
+def test_calculates_support_tool_accuracy() -> None:
+    run = EvaluationRun(
+        run_id="run-support",
+        suite="mvp-final",
+        version="MVP-final",
+        created_at="2026-08-22T12:00:00+00:00",
+        results=[
+            EvaluationResult(
+                case_id="gold-014",
+                case_type="support",
+                prediction={},
+                raw_response="",
+                model="fake-model",
+                reference={},
+                error=None,
+                latency_ms=10,
+                prompt_tokens=1,
+                completion_tokens=1,
+                cost_usd=0.0,
+                tool_calls=["search_policy"],
+                expected_tool_calls=["search_policy"],
+            )
+        ],
+    )
+
+    summary = summarize_mvp_run(run)
+
+    assert summary.support_tool_accuracy == pytest.approx(1.0)
