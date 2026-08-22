@@ -16,6 +16,7 @@ from marketplace_agent.evals.recording_registry import (
     RecordingToolRegistry,
 )
 from marketplace_agent.evals.runner import save_run
+from marketplace_agent.llm.cache import CachedLLMClient
 from marketplace_agent.llm.factory import create_llm_client
 from marketplace_agent.retrieval.documents import load_policy_chunks
 from marketplace_agent.retrieval.hybrid import HybridRetriever
@@ -41,8 +42,11 @@ def main() -> None:
     """Run all MVP golden cases through the real application modules."""
 
     settings = Settings.from_environment()
+    cached_llm = CachedLLMClient(
+        create_llm_client(settings)
+    )
     meter = MeteredLLMClient(
-        create_llm_client(settings),
+        cached_llm,
         input_price_per_million=settings.input_price_per_million,
         output_price_per_million=settings.output_price_per_million,
     )
@@ -82,6 +86,10 @@ def main() -> None:
     cases = load_golden_cases(
         PROJECT_ROOT / "data" / "gold" / "mvp_cases.json"
     )
+    print(
+        f"Cache: {cached_llm.cache_hits} hits, "
+        f"{cached_llm.cache_misses} misses"
+    )
     run = run_mvp_final(cases, executor.execute)
     output_path = save_run(
         run,
@@ -89,6 +97,10 @@ def main() -> None:
     )
 
     errors = sum(result.error is not None for result in run.results)
+    print(
+        f"Cache: {cached_llm.cache_hits} hits, "
+        f"{cached_llm.cache_misses} misses"
+    )
     print(f"Saved evaluation: {output_path}")
     print(f"Cases: {len(run.results)}, errors: {errors}")
 

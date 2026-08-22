@@ -13,6 +13,8 @@ class CachedLLMClient:
     def __init__(self, inner_client: LLMClient) -> None:
         self.inner_client = inner_client
         self._chat_cache: dict[str, LLMResponse] = {}
+        self.cache_hits = 0
+        self.cache_misses = 0
 
     def chat(
         self,
@@ -32,15 +34,18 @@ class CachedLLMClient:
             max_tokens=max_tokens,
         )
 
-        if cache_key not in self._chat_cache:
-            self._chat_cache[cache_key] = self.inner_client.chat(
-                messages=messages,
-                tools=tools,
-                response_schema=response_schema,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
+        if cache_key in self._chat_cache:
+            self.cache_hits += 1
+            return self._chat_cache[cache_key]
 
+        self.cache_misses += 1
+        self._chat_cache[cache_key] = self.inner_client.chat(
+            messages=messages,
+            tools=tools,
+            response_schema=response_schema,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
         return self._chat_cache[cache_key]
 
     def embed(self, texts: list[str]) -> list[list[float]]:

@@ -52,3 +52,26 @@ def test_cache_prevents_repeated_chat_request() -> None:
 
     assert first_response == second_response
     assert inner_client.chat_calls == 1
+
+def test_counts_cache_hits_and_misses() -> None:
+    inner_client = CountingLLMClient()
+    client = CachedLLMClient(inner_client)
+    messages = [Message(role="user", content="Привет")]
+
+    client.chat(
+        messages=messages,
+        tools=None,
+        response_schema=None,
+        temperature=0.0,
+        max_tokens=20,
+    )
+    client.chat(
+        messages=messages,
+        tools=None,
+        response_schema=None,
+        temperature=0.0,
+        max_tokens=20,
+    )
+
+    assert client.cache_hits == 1
+    assert client.cache_misses == 1
