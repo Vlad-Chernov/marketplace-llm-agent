@@ -11,3 +11,4 @@ data/synthetic/
 data/traces/
 evals/runs/
 data/vector_store/
+evals/results/
