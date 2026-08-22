@@ -66,3 +66,26 @@ def test_resets_accumulated_metrics() -> None:
     assert client.completion_tokens == 0
     assert client.latency_ms == 0
     assert client.cost_usd == 0.0
+
+def test_keeps_last_llm_response() -> None:
+    expected_response = LLMResponse(
+        content='{"ram_gb":"16"}',
+        model="fake-model",
+        prompt_tokens=10,
+        completion_tokens=5,
+    )
+    client = MeteredLLMClient(
+        FakeLLMClient([expected_response]),
+        input_price_per_million=0.0,
+        output_price_per_million=0.0,
+    )
+
+    client.chat(
+        messages=[Message(role="user", content="Вопрос")],
+        tools=None,
+        response_schema=None,
+        temperature=0.0,
+        max_tokens=100,
+    )
+
+    assert client.last_response == expected_response

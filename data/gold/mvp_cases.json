@@ -194,9 +194,9 @@
     "type": "validation",
     "input": {
         "content": {
-            "title": "Ноутбук",
+            "title": "Ноутбук для работы дома",
             "bullets": [],
-            "description": "Закажите на example.com или звоните +7 999 123-45-67",
+            "description": "Закажите на https://example.com или звоните +7 999 123-45-67",
             "keywords": [],
             "used_attributes": {}
         }

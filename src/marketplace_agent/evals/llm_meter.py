@@ -22,6 +22,7 @@ class MeteredLLMClient:
         self.completion_tokens = 0
         self.latency_ms = 0
         self.cost_usd = 0.0
+        self.last_response: LLMResponse | None = None
 
 
     def reset(self) -> None:
@@ -31,8 +32,9 @@ class MeteredLLMClient:
         self.completion_tokens = 0
         self.latency_ms = 0
         self.cost_usd = 0.0
+        self.last_response = None
 
-        
+
     def chat(
         self,
         messages: list[Message],
@@ -51,6 +53,7 @@ class MeteredLLMClient:
             temperature=temperature,
             max_tokens=max_tokens,
         )
+        self.last_response = response        
         self.prompt_tokens += response.prompt_tokens
         self.completion_tokens += response.completion_tokens
         self.latency_ms += round((perf_counter() - started_at) * 1000)
