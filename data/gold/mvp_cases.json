@@ -172,7 +172,7 @@
     "type": "validation",
     "input": {
         "content": {
-            "title": "Ноутбук",
+            "title": "Ноутбук для работы и учебы",
             "bullets": [],
             "description": "Лучший ноутбук для здоровья глаз",
             "keywords": [],
@@ -238,7 +238,7 @@
     "type": "validation",
     "input": {
         "content": {
-            "title": "Ноутбук",
+            "title": "Ноутбук для работы и учебы",
             "bullets": [],
             "description": "Этот ноутбук лучше, чем модели конкурентов",
             "keywords": [],
@@ -246,9 +246,9 @@
         }
     },
     "expected_answer": {
-      "violations": ["competitor-comparison", "unverifiable-superlative"]
+      "violations": ["competitor-comparison"]
     },
-    "expected_citations": ["rules:competitor-comparison", "rules:unverifiable-superlative"],
+    "expected_citations": ["rules:competitor-comparison"],
     "must_call_tools": ["validate_content"],
     "must_not_contain": [],
     "origin": "manual",

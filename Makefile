@@ -7,8 +7,8 @@ test:
 	uv run pytest
 
 lint:
-	uv run ruff check --fix src tests evals/run_eval.py evals/compare_content_pipeline.py evals/run_review_eval.py scripts/ingest_policies.py evals/evaluate_retrieval.py evals/compare_retrieval_experiments.py scripts/run_mvp_final.py
-	uv run ruff check src tests evals/run_eval.py evals/compare_content_pipeline.py evals/run_review_eval.py scripts/ingest_policies.py evals/evaluate_retrieval.py evals/compare_retrieval_experiments.py scripts/run_mvp_final.py
+	uv run ruff check --fix src tests evals/run_eval.py evals/compare_content_pipeline.py evals/run_review_eval.py scripts/ingest_policies.py evals/evaluate_retrieval.py evals/compare_retrieval_experiments.py scripts/run_mvp_final.py scripts/summarize_mvp_run.py
+	uv run ruff check src tests evals/run_eval.py evals/compare_content_pipeline.py evals/run_review_eval.py scripts/ingest_policies.py evals/evaluate_retrieval.py evals/compare_retrieval_experiments.py scripts/run_mvp_final.py scripts/summarize_mvp_run.py
 
 check: lint test
 

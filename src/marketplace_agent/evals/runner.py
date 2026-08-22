@@ -101,6 +101,21 @@ def run_evaluation(
         results=results,
     )
 
+def load_evaluation_run(path: Path) -> EvaluationRun:
+    """Загрузить ранее сохранённый результат evaluation-прогона."""
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+
+    return EvaluationRun(
+        run_id=payload["run_id"],
+        suite=payload["suite"],
+        version=payload["version"],
+        created_at=payload["created_at"],
+        results=[
+            EvaluationResult(**result)
+            for result in payload["results"]
+        ],
+    )
 
 def save_run(run: EvaluationRun, output_directory: Path) -> Path:
     output_directory.mkdir(parents=True, exist_ok=True)
