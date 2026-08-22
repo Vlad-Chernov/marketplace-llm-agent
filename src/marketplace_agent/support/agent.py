@@ -63,7 +63,7 @@ class SupportAgent:
         if self._is_forbidden_request(message):
             return self._escalated("forbidden_request")
 
-        messages = self._build_messages(message, history)
+        messages = self._build_messages(message, session_id, history)
         seen_calls: set[str] = set()
 
         for _ in range(3):
@@ -158,6 +158,7 @@ class SupportAgent:
     def _build_messages(
         self,
         message: str,
+        session_id: str,
         history: list[Message],
     ) -> list[Message]:
         instructions = {
@@ -170,6 +171,7 @@ class SupportAgent:
                 "citations": ["chunk_id"],
                 "tool_name": "registered name for tool_call",
                 "arguments": {},
+                "session_id": session_id,
             },
         }
         return [
@@ -177,6 +179,7 @@ class SupportAgent:
             Message(
                 role="user",
                 content=(
+                    "Для вопросов о правилах сначала вызови search_policy. "
                     "Верни только JSON по инструкции. "
                     "Если не хватает номера заказа, задай уточняющий вопрос. "
                     f"Контекст: {json.dumps(instructions, ensure_ascii=False)}"

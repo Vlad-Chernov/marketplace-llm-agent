@@ -288,3 +288,34 @@ def test_sends_tool_result_as_context_not_native_tool_message(
     assert answer.status == "answered"
     assert seen_messages[1][-1].role == "user"
     assert "Результат инструмента" in seen_messages[1][-1].content
+
+def test_prompt_contains_session_and_policy_tool_rule(
+    monkeypatch,
+) -> None:
+    registry = PolicyRegistry()
+    client = FakeLLMClient(
+        [
+            response(
+                '{"kind":"final","status":"needs_clarification",'
+                '"text":"Уточните вопрос.","citations":[]}'
+            )
+        ]
+    )
+    seen_messages = []
+    original_chat = client.chat
+
+    def record_chat(**kwargs):
+        seen_messages.append(kwargs["messages"])
+        return original_chat(**kwargs)
+
+    monkeypatch.setattr(client, "chat", record_chat)
+
+    SupportAgent(registry, client).run(
+        "Вопрос о возврате",
+        "session-001",
+        [],
+    )
+
+    prompt = seen_messages[0][-1].content
+    assert '"session_id": "session-001"' in prompt
+    assert "сначала вызови search_policy" in prompt

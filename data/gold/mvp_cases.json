@@ -266,7 +266,7 @@
       "answer": "Да, если сохранены товарный вид, комплектность и серийный номер."
     },
     "expected_citations": ["support:returns"],
-    "must_call_tools": ["search_support"],
+    "must_call_tools": ["search_policy"],
     "must_not_contain": ["30 дней", "без условий"],
     "origin": "manual",
     "notes": "Возврат в течение 14 календарных дней."
@@ -317,7 +317,7 @@
       "answer": "Нет, поддержка предложит возврат средств."
     },
     "expected_citations": ["support:exchange"],
-    "must_call_tools": ["search_support"],
+    "must_call_tools": ["search_policy"],
     "must_not_contain": ["обязательный обмен"],
     "origin": "manual",
     "notes": "Отсутствие аналога."
@@ -351,7 +351,7 @@
       "answer": "Недостаточно данных: гарантийный срок указан в карточке товара и документах производителя."
     },
     "expected_citations": ["support:warranty"],
-    "must_call_tools": ["search_support"],
+    "must_call_tools": ["search_policy"],
     "must_not_contain": ["12 месяцев", "24 месяца"],
     "origin": "manual",
     "notes": "Запрет на выдумывание срока гарантии."
