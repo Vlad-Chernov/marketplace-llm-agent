@@ -41,7 +41,7 @@ def validate_semantic(
         client=llm,
         messages=_build_messages(content, semantic_rules),
         response_schema=SemanticValidationResponse,
-        max_retries=0,
+        max_retries=1,
     )
 
     violations: list[RuleViolation] = []

@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 
 from marketplace_agent.domain.models import GeneratedContent
-from marketplace_agent.llm.base import LLMResponse
+from marketplace_agent.llm.base import FakeLLMClient, LLMResponse
 from marketplace_agent.validation.semantic import (
     SemanticValidationError,
     validate_semantic,
@@ -128,3 +128,47 @@ def test_rejects_violation_with_unknown_rule_id() -> None:
 
     with pytest.raises(SemanticValidationError, match="unknown rule"):
         validate_semantic(content, SEMANTIC_RULES, client)
+
+def test_retries_once_after_invalid_llm_response() -> None:
+    content = GeneratedContent(
+        title="Ноутбук для работы и учебы",
+        bullets=[],
+        description="Лучший ноутбук для работы.",
+        keywords=[],
+        used_attributes={},
+    )
+    rules = [
+        {
+            "id": "unverifiable-superlative",
+            "description": "Нельзя использовать недоказуемые превосходные степени.",
+            "severity": "medium",
+        }
+    ]
+    client = FakeLLMClient(
+        [
+            LLMResponse(
+                content="Это не JSON",
+                model="fake-model",
+                prompt_tokens=10,
+                completion_tokens=5,
+            ),
+            LLMResponse(
+                content=(
+                    '{"violations":['
+                    '{"rule_id":"unverifiable-superlative",'
+                    '"field":"description",'
+                    '"evidence":"Лучший"}'
+                    ']}'
+                ),
+                model="fake-model",
+                prompt_tokens=10,
+                completion_tokens=5,
+            ),
+        ]
+    )
+
+    violations = validate_semantic(content, rules, client)
+
+    assert [violation.rule_id for violation in violations] == [
+        "unverifiable-superlative"
+    ]
