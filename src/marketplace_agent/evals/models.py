@@ -23,6 +23,7 @@ class GoldenCase(BaseModel):
     id: str = Field(min_length=1)
     question: str = Field(min_length=1)
     type: GoldenCaseType
+    input: dict[str, Any]
     expected_answer: Any
     expected_citations: list[str] = Field(default_factory=list)
     must_call_tools: list[str] = Field(default_factory=list)

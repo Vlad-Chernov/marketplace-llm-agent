@@ -7,6 +7,7 @@ def test_builds_strict_prompt_for_attribute_extraction() -> None:
         id="gold-001",
         question="Из описания «Диагональ 14.0, ОЗУ 16 ГБ» извлеки атрибуты.",
         type="attribute_extraction",
+        input={"supplier_description": "Ноутбук с ОЗУ 16 ГБ."},
         expected_answer={
             "screen_diagonal_in": 14.0,
             "ram_gb": "16",

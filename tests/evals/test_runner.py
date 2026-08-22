@@ -14,6 +14,7 @@ def test_runs_case_and_persists_non_overwriting_results(tmp_path: Path) -> None:
         id="gold-001",
         question="Извлеки ОЗУ: 16 ГБ.",
         type="attribute_extraction",
+        input={"supplier_description": "Ноутбук с ОЗУ 16 ГБ."},
         expected_answer={"ram_gb": "16"},
         origin="manual",
     )
