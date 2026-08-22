@@ -70,7 +70,7 @@ class MeteredLLMClient:
                 / 1_000_000
                 * self._output_price_per_million
             )
-
+        return response
     def embed(self, texts: list[str]) -> list[list[float]]:
         """Delegate embedding requests without changing their metrics."""
 

@@ -89,10 +89,7 @@ def main() -> None:
     cases = load_golden_cases(
         PROJECT_ROOT / "data" / "gold" / "mvp_cases.json"
     )
-    print(
-        f"Cache: {cached_llm.cache_hits} hits, "
-        f"{cached_llm.cache_misses} misses"
-    )
+
     run = run_mvp_final(cases, executor.execute)
     output_path = save_run(
         run,
