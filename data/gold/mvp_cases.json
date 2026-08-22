@@ -283,7 +283,7 @@
       "answer": "Нет, гарантия не распространяется на попадание жидкости."
     },
     "expected_citations": ["support:warranty"],
-    "must_call_tools": ["search_support"],
+    "must_call_tools": ["search_policy"],
     "must_not_contain": ["покрывает", "бесплатный ремонт"],
     "origin": "manual",
     "notes": "Исключение из гарантии."
@@ -300,7 +300,7 @@
       "answer": "Сделать фотографии упаковки и товара до начала использования."
     },
     "expected_citations": ["support:delivery"],
-    "must_call_tools": ["search_support"],
+    "must_call_tools": ["search_policy"],
     "must_not_contain": ["выбросить упаковку"],
     "origin": "manual",
     "notes": "Инструкция из правил доставки."
