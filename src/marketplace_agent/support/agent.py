@@ -120,10 +120,11 @@ class SupportAgent:
 
             messages.append(
                 Message(
-                    role="tool",
-                    content=json.dumps(
-                        tool_result.model_dump(),
-                        ensure_ascii=False,
+                    role="user",
+                    content=(
+                        "Результат инструмента. Используй только эти "
+                        "данные для следующего JSON-ответа:\n"
+                        f"{json.dumps(tool_result.model_dump(), ensure_ascii=False)}"
                     ),
                 )
             )

@@ -1,4 +1,4 @@
-.PHONY: setup test lint check data ingest evaluate-retrieval compare-retrieval
+.PHONY: setup test lint check data ingest demo evaluate-retrieval compare-retrieval
 
 setup:
 	uv sync --all-groups
@@ -17,6 +17,9 @@ data:
 
 ingest:
 	uv run python scripts/ingest_policies.py
+
+demo:
+	uv run python scripts/demo.py
 
 eval-smoke:
 	PYTHONPATH=src uv run python scripts/llm_smoke.py

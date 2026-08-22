@@ -252,3 +252,39 @@ def test_escalates_when_model_returns_final_without_text() -> None:
 
     assert answer.status == "escalated"
     assert answer.escalation_reason == "insufficient_data"
+
+def test_sends_tool_result_as_context_not_native_tool_message(
+    monkeypatch,
+) -> None:
+    registry = PolicyRegistry()
+    client = FakeLLMClient(
+        [
+            response(
+                '{"kind":"tool_call","tool_name":"search_policy",'
+                '"arguments":{"query":"Возврат"}}'
+            ),
+            response(
+                '{"kind":"final","status":"answered",'
+                '"text":"Возврат возможен 14 дней.",'
+                '"citations":["returns-01"]}'
+            ),
+        ]
+    )
+    seen_messages = []
+    original_chat = client.chat
+
+    def record_chat(**kwargs):
+        seen_messages.append(kwargs["messages"])
+        return original_chat(**kwargs)
+
+    monkeypatch.setattr(client, "chat", record_chat)
+
+    answer = SupportAgent(registry, client).run(
+        "Как вернуть товар?",
+        "session-001",
+        [],
+    )
+
+    assert answer.status == "answered"
+    assert seen_messages[1][-1].role == "user"
+    assert "Результат инструмента" in seen_messages[1][-1].content

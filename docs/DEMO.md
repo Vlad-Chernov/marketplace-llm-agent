@@ -1,15 +1,31 @@
 # Seven-Minute Demo
 
-## Scenario
-
-The final demo will show the end-to-end workflow:
-
-1. Generate synthetic marketplace data.
-2. Process a noisy product description.
-3. Validate and repair a product card.
-4. Analyse defects in reviews.
-5. Answer a support question with evidence.
-
 ## Preparation
 
-Detailed commands and expected results will be added after the MVP is complete.
+```bash
+cp .env.example .env
+# Заполнить ключ выбранного провайдера.
+make setup
+make data
+make ingest
+```
+
+## Run
+
+```bash
+make demo
+```
+
+## What the demo shows
+
+1. Создание и проверку карточки товара из шумного описания.
+2. Классификацию одного отзыва по фиксированной таксономии.
+3. Ответ агента поддержки с найденными пунктами правил.
+
+В терминале выводятся три раздела: `Карточка`, `Отзыв` и `Поддержка`.
+
+## Notes
+
+`make demo` использует настоящий LLM API. Автоматические тесты используют `FakeLLMClient` и не требуют API-ключа.
+
+`make ingest` может вывести предупреждение Hugging Face об отсутствии `HF_TOKEN`. Для публичной модели это не мешает работе; токен нужен только для более высоких лимитов загрузки.
