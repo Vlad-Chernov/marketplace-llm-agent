@@ -34,3 +34,14 @@ def test_rejects_missing_key_for_selected_provider(monkeypatch) -> None:
 
     with pytest.raises(ValueError, match="GROQ_API_KEY"):
         Settings.from_environment()
+
+def test_loads_llm_prices(monkeypatch) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", "groq")
+    monkeypatch.setenv("GROQ_API_KEY", "groq-test-key")
+    monkeypatch.setenv("LLM_INPUT_PRICE_PER_MILLION", "0.59")
+    monkeypatch.setenv("LLM_OUTPUT_PRICE_PER_MILLION", "0.79")
+
+    settings = Settings.from_environment()
+
+    assert settings.input_price_per_million == 0.59
+    assert settings.output_price_per_million == 0.79

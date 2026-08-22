@@ -15,6 +15,8 @@ class Settings:
     groq_api_key: str
     openrouter_api_key: str
     groq_model: str = "groq/compound-mini"
+    input_price_per_million: float = 0.0
+    output_price_per_million: float = 0.0
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -40,4 +42,10 @@ class Settings:
             groq_api_key=groq_api_key,
             openrouter_api_key=openrouter_api_key,
             groq_model=os.getenv("GROQ_MODEL", "groq/compound-mini"),
+            input_price_per_million=float(
+                os.getenv("LLM_INPUT_PRICE_PER_MILLION", "0.0")
+            ),
+            output_price_per_million=float(
+                os.getenv("LLM_OUTPUT_PRICE_PER_MILLION", "0.0")
+            ),
         )

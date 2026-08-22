@@ -1,4 +1,4 @@
-.PHONY: setup test lint check data ingest demo evaluate-retrieval compare-retrieval
+.PHONY: setup test lint check data ingest demo evaluate-retrieval compare-retrieval evaluate-mvp
 
 setup:
 	uv sync --all-groups
@@ -7,8 +7,8 @@ test:
 	uv run pytest
 
 lint:
-	uv run ruff check --fix src tests evals/run_eval.py evals/compare_content_pipeline.py evals/run_review_eval.py scripts/ingest_policies.py evals/evaluate_retrieval.py evals/compare_retrieval_experiments.py
-	uv run ruff check src tests evals/run_eval.py evals/compare_content_pipeline.py evals/run_review_eval.py scripts/ingest_policies.py evals/evaluate_retrieval.py evals/compare_retrieval_experiments.py
+	uv run ruff check --fix src tests evals/run_eval.py evals/compare_content_pipeline.py evals/run_review_eval.py scripts/ingest_policies.py evals/evaluate_retrieval.py evals/compare_retrieval_experiments.py scripts/run_mvp_final.py
+	uv run ruff check src tests evals/run_eval.py evals/compare_content_pipeline.py evals/run_review_eval.py scripts/ingest_policies.py evals/evaluate_retrieval.py evals/compare_retrieval_experiments.py scripts/run_mvp_final.py
 
 check: lint test
 
@@ -29,3 +29,6 @@ evaluate-retrieval:
 
 compare-retrieval:
 	uv run python evals/compare_retrieval_experiments.py
+
+evaluate-mvp:
+	uv run python scripts/run_mvp_final.py
