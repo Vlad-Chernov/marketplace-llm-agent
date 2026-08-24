@@ -47,6 +47,7 @@ def main() -> None:
         cache_path=(
             PROJECT_ROOT / "data" / "cache" / "mvp-final-llm.json"
         ),
+        cache_namespace=settings.cache_namespace,
     )
     meter = MeteredLLMClient(
         cached_llm,

@@ -15,9 +15,11 @@ class CachedLLMClient:
         self,
         inner_client: LLMClient,
         cache_path: Path | None = None,
+        cache_namespace: str = "",
     ) -> None:
         self.inner_client = inner_client
         self._cache_path = cache_path
+        self._cache_namespace = cache_namespace
         self._chat_cache = self._load_cache()
         self.cache_hits = 0
         self.cache_misses = 0
@@ -92,25 +94,8 @@ class CachedLLMClient:
             encoding="utf-8",
         )
 
-    def _save_cache(self) -> None:
-        if self._cache_path is None:
-            return
-
-        self._cache_path.parent.mkdir(parents=True, exist_ok=True)
-        self._cache_path.write_text(
-            json.dumps(
-                {
-                    key: response.model_dump()
-                    for key, response in self._chat_cache.items()
-                },
-                ensure_ascii=False,
-                sort_keys=True,
-            ),
-            encoding="utf-8",
-        )
-
-    @staticmethod
     def _create_chat_cache_key(
+        self,
         messages: list[Message],
         tools: list[dict[str, Any]] | None,
         response_schema: type[BaseModel] | None,
@@ -118,6 +103,7 @@ class CachedLLMClient:
         max_tokens: int,
     ) -> str:
         payload = {
+            "cache_namespace": self._cache_namespace,
             "messages": [message.model_dump() for message in messages],
             "tools": tools,
             "response_schema": (

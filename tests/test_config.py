@@ -26,6 +26,15 @@ def test_loads_openrouter_settings_without_groq_key(monkeypatch) -> None:
     assert settings.llm_provider == "openrouter"
     assert settings.openrouter_api_key == "openrouter-test-key"
 
+def test_loads_openrouter_model(monkeypatch) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", "openrouter")
+    monkeypatch.setenv("GROQ_API_KEY", "")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "openrouter-test-key")
+    monkeypatch.setenv("OPENROUTER_MODEL", "openai/gpt-oss-20b")
+
+    settings = Settings.from_environment()
+
+    assert settings.openrouter_model == "openai/gpt-oss-20b"
 
 def test_rejects_missing_key_for_selected_provider(monkeypatch) -> None:
     monkeypatch.setenv("LLM_PROVIDER", "groq")
@@ -45,3 +54,13 @@ def test_loads_llm_prices(monkeypatch) -> None:
 
     assert settings.input_price_per_million == 0.59
     assert settings.output_price_per_million == 0.79
+
+def test_builds_cache_namespace_for_selected_provider() -> None:
+    settings = Settings(
+        llm_provider="openrouter",
+        groq_api_key="",
+        openrouter_api_key="openrouter-test-key",
+        openrouter_model="openai/gpt-oss-20b",
+    )
+
+    assert settings.cache_namespace == "openrouter:openai/gpt-oss-20b"

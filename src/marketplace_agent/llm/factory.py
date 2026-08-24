@@ -18,5 +18,5 @@ def create_llm_client(settings: Settings) -> OpenAICompatibleLLMClient:
     return OpenAICompatibleLLMClient(
         api_key=settings.openrouter_api_key,
         base_url="https://openrouter.ai/api/v1",
-        model="openrouter/free",
+        model=settings.openrouter_model,
     )

@@ -23,8 +23,9 @@ def test_factory_creates_openrouter_client() -> None:
             llm_provider="openrouter",
             groq_api_key="groq-key",
             openrouter_api_key="openrouter-key",
+            openrouter_model="openai/gpt-oss-20b",
         )
     )
 
     assert client.base_url == "https://openrouter.ai/api/v1"
-    assert client.model == "openrouter/free"
+    assert client.model == "openai/gpt-oss-20b"

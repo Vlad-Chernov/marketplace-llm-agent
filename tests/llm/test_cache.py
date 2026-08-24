@@ -110,3 +110,39 @@ def test_cache_survives_new_client_instance(tmp_path: Path) -> None:
     assert first_inner_client.chat_calls == 1
     assert second_inner_client.chat_calls == 0
     assert second_client.cache_hits == 1
+
+def test_separates_persisted_cache_by_namespace(tmp_path: Path) -> None:
+    cache_path = tmp_path / "llm-cache.json"
+    messages = [Message(role="user", content="Привет")]
+
+    groq_inner_client = CountingLLMClient()
+    groq_client = CachedLLMClient(
+        groq_inner_client,
+        cache_path=cache_path,
+        cache_namespace="groq:qwen/qwen3.6-27b",
+    )
+    groq_client.chat(
+        messages=messages,
+        tools=None,
+        response_schema=None,
+        temperature=0.0,
+        max_tokens=20,
+    )
+
+    openrouter_inner_client = CountingLLMClient()
+    openrouter_client = CachedLLMClient(
+        openrouter_inner_client,
+        cache_path=cache_path,
+        cache_namespace="openrouter:openai/gpt-oss-20b",
+    )
+    openrouter_client.chat(
+        messages=messages,
+        tools=None,
+        response_schema=None,
+        temperature=0.0,
+        max_tokens=20,
+    )
+
+    assert groq_inner_client.chat_calls == 1
+    assert openrouter_inner_client.chat_calls == 1
+    assert openrouter_client.cache_misses == 1
