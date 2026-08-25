@@ -1,26 +1,26 @@
 # Marketplace LLM Agent
 
-A local educational project for marketplace product content, review analysis, and customer support workflows.
+Учебный MVP LLM-агента для маркетплейса: он создаёт карточку товара, анализирует отзыв и отвечает покупателю по правилам магазина.
 
-## Project status
+## Возможности
 
-The project is under active development.
+- извлекает характеристики из шумного описания поставщика;
+- генерирует и проверяет карточку ноутбука;
+- классифицирует дефекты в отзывах;
+- отвечает на вопросы поддержки с цитатами из правил;
+- запускает golden evaluation из 25 кейсов;
+- сохраняет результаты evaluation и использует кэш LLM-ответов.
 
-## Planned capabilities
+## Стек
 
-- Extract product attributes from noisy supplier descriptions.
-- Generate, validate, and repair product cards.
-- Identify product defects in customer reviews.
-- Answer customer questions using support documents and order data.
+Python, uv, Pydantic, SQLite, BM25, векторный поиск, pytest, Ruff и OpenAI-совместимые LLM API.
 
-## Technology stack
+## Быстрый запуск
 
-Python, uv, Pydantic, SQLite, pytest, Ruff, and local or free LLM providers.
+Нужны Python, `uv` и ключ одного из провайдеров: Groq или OpenRouter.
 
-## Setup
+```bash
+git clone <URL_ТВОЕГО_РЕПОЗИТОРИЯ>
+cd <ПАПКА_ПРОЕКТА>
 
-Installation instructions will be added as the project evolves.
-
-## License
-
-This project is created for educational and portfolio purposes.
+cp .env.example .env

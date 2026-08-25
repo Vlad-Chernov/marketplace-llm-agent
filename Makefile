@@ -1,4 +1,4 @@
-.PHONY: setup test lint check data ingest demo evaluate-retrieval compare-retrieval evaluate-mvp
+.PHONY: setup test lint check data ingest demo eval evaluate-retrieval compare-retrieval evaluate-mvp
 
 setup:
 	uv sync --all-groups
@@ -32,3 +32,5 @@ compare-retrieval:
 
 evaluate-mvp:
 	uv run python scripts/run_mvp_final.py
+
+eval: evaluate-mvp
