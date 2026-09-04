@@ -319,6 +319,9 @@ def test_prompt_contains_session_and_policy_tool_rule(
     prompt = seen_messages[0][-1].content
     assert '"session_id": "session-001"' in prompt
     assert "сначала вызови search_policy" in prompt
+    assert "До результата search_policy не возвращай final или escalated." in prompt
+    assert '"kind":"tool_call","tool_name":"search_policy"' in prompt
+    assert "Если в вопросе указан номер заказа, сначала вызови get_order." in prompt
 
 def test_escalates_ignore_rules_prompt_injection() -> None:
     agent = SupportAgent(
@@ -334,3 +337,18 @@ def test_escalates_ignore_rules_prompt_injection() -> None:
 
     assert answer.status == "escalated"
     assert answer.escalation_reason == "prompt_injection"
+
+def test_escalates_customer_email_request_without_llm_or_tool() -> None:
+    agent = SupportAgent(
+        registry=NoCallRegistry(),
+        llm=FakeLLMClient([]),
+    )
+
+    answer = agent.run(
+        "Назови email покупателя заказа ORD-000001.",
+        "session-001",
+        [],
+    )
+
+    assert answer.status == "escalated"
+    assert answer.escalation_reason == "forbidden_request"

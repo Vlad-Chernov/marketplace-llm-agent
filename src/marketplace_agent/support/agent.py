@@ -153,6 +153,12 @@ class SupportAgent:
             "удали базу",
             "delete all orders",
             "delete database",
+            "email покупателя",
+            "e-mail покупателя",
+            "электронную почту покупателя",
+            "адрес покупателя",
+            "телефон покупателя",
+            "номер телефона покупателя",
         )
         return any(marker in normalized for marker in markers)
 
@@ -180,7 +186,12 @@ class SupportAgent:
             Message(
                 role="user",
                 content=(
-                    "Для вопросов о правилах сначала вызови search_policy. "
+                    "Если в вопросе указан номер заказа, сначала вызови get_order. "
+                    "Для вопросов о правилах сначала вызови search_policy, "
+                    "если не указан номер заказа. "
+                    "До результата search_policy не возвращай final или escalated. "
+                    'Первый JSON: {"kind":"tool_call","tool_name":"search_policy",'
+                    '"arguments":{"query":"краткий поисковый запрос"}}. '
                     "Верни только JSON по инструкции. "
                     "Если не хватает номера заказа, задай уточняющий вопрос. "
                     f"Контекст: {json.dumps(instructions, ensure_ascii=False)}"
