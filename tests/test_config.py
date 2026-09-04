@@ -64,3 +64,17 @@ def test_builds_cache_namespace_for_selected_provider() -> None:
     )
 
     assert settings.cache_namespace == "openrouter:openai/gpt-oss-20b"
+
+def test_loads_gigachat_settings_without_other_provider_keys(monkeypatch) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", "gigachat")
+    monkeypatch.setenv("GROQ_API_KEY", "")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "")
+    monkeypatch.setenv("GIGACHAT_AUTHORIZATION_KEY", "gigachat-test-key")
+    monkeypatch.setenv("GIGACHAT_MODEL", "GigaChat-2-Pro")
+
+    settings = Settings.from_environment()
+
+    assert settings.llm_provider == "gigachat"
+    assert settings.gigachat_authorization_key == "gigachat-test-key"
+    assert settings.gigachat_model == "GigaChat-2-Pro"
+    assert settings.cache_namespace == "gigachat:GigaChat-2-Pro"

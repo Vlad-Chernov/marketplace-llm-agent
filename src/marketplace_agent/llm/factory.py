@@ -1,8 +1,12 @@
 from marketplace_agent.config import Settings
-from marketplace_agent.llm.providers import OpenAICompatibleLLMClient
+from marketplace_agent.llm.base import LLMClient
+from marketplace_agent.llm.providers import (
+    GigaChatLLMClient,
+    OpenAICompatibleLLMClient,
+)
 
 
-def create_llm_client(settings: Settings) -> OpenAICompatibleLLMClient:
+def create_llm_client(settings: Settings) -> LLMClient:
     """Create the configured LLM client."""
 
     if settings.llm_provider == "groq":
@@ -12,7 +16,13 @@ def create_llm_client(settings: Settings) -> OpenAICompatibleLLMClient:
             model=settings.groq_model,
             reasoning_effort=(
                 "none" if settings.groq_model.startswith("qwen/") else None
-                ),
+            ),
+        )
+
+    if settings.llm_provider == "gigachat":
+        return GigaChatLLMClient(
+            authorization_key=settings.gigachat_authorization_key,
+            model=settings.gigachat_model,
         )
 
     return OpenAICompatibleLLMClient(

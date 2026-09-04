@@ -1,6 +1,7 @@
 import re
-from time import sleep
+from time import sleep, time
 from typing import Any
+from uuid import uuid4
 
 import httpx
 from pydantic import BaseModel
@@ -49,7 +50,7 @@ class OpenAICompatibleLLMClient:
         if tools is not None:
             payload["tools"] = tools
         if response_schema is not None:
-           payload["response_format"] = {"type": "json_object"}
+            payload["response_format"] = self._response_format(response_schema)
 
         if self.reasoning_effort is not None:
             payload["reasoning_effort"] = self.reasoning_effort
@@ -64,6 +65,12 @@ class OpenAICompatibleLLMClient:
             prompt_tokens=usage.get("prompt_tokens", 0),
             completion_tokens=usage.get("completion_tokens", 0),
         )
+
+    def _response_format(
+        self,
+        response_schema: type[BaseModel],
+    ) -> dict[str, Any]:
+        return {"type": "json_object"}
 
     def embed(self, texts: list[str]) -> list[list[float]]:
         """Request embedding vectors from the provider."""
@@ -90,7 +97,11 @@ class OpenAICompatibleLLMClient:
                 ) as client:
                     response = client.post(path, json=payload)
             except httpx.HTTPError as error:
-                raise LLMProviderError("LLM request failed.") from error
+                if attempt == 2:
+                    raise LLMProviderError("LLM request failed.") from error
+
+                sleep(1.0)
+                continue
 
             if response.status_code != 429 or attempt == 2:
                 break
@@ -118,3 +129,67 @@ class OpenAICompatibleLLMClient:
             )
 
         return response.json()
+
+class GigaChatLLMClient(OpenAICompatibleLLMClient):
+    """Call GigaChat after obtaining an OAuth access token."""
+
+    def __init__(
+        self,
+        authorization_key: str,
+        model: str,
+        transport: httpx.BaseTransport | None = None,
+    ) -> None:
+        super().__init__(
+            api_key="",
+            base_url="https://api.giga.chat/v1",
+            model=model,
+            transport=transport,
+        )
+        self.authorization_key = authorization_key
+        self._access_token = ""
+        self._token_expires_at = 0.0
+
+    def _response_format(
+        self,
+        response_schema: type[BaseModel],
+    ) -> dict[str, Any]:
+        return {
+            "type": "json_schema",
+            "schema": response_schema.model_json_schema(),
+            "strict": True,
+        }
+
+    def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        self.api_key = self._get_access_token()
+        return super()._post(path, payload)
+
+    def _get_access_token(self) -> str:
+        if self._access_token and time() < self._token_expires_at:
+            return self._access_token
+
+        try:
+            with httpx.Client(
+                base_url="https://ngw.devices.sberbank.ru:9443",
+                headers={
+                    "Authorization": f"Basic {self.authorization_key}",
+                    "RqUID": str(uuid4()),
+                },
+                timeout=30.0,
+                transport=self.transport,
+            ) as client:
+                response = client.post(
+                    "/api/v2/oauth",
+                    data={"scope": "GIGACHAT_API_PERS"},
+                )
+        except httpx.HTTPError as error:
+            raise LLMProviderError("GigaChat authorization failed.") from error
+
+        if response.status_code >= 400:
+            raise LLMProviderError(
+                f"GigaChat authorization returned HTTP {response.status_code}."
+            )
+
+        payload = response.json()
+        self._access_token = payload["access_token"]
+        self._token_expires_at = float(payload["expires_at"]) - 60
+        return self._access_token
