@@ -32,8 +32,10 @@ class RecordingLLMClient:
     def __init__(self, content: str) -> None:
         self.content = content
         self.call_count = 0
+        self.messages: list[Any] = []
 
     def chat(self, **_: Any) -> LLMResponse:
+        self.messages = _["messages"]
         self.call_count += 1
         return LLMResponse(
             content=self.content,
@@ -172,3 +174,16 @@ def test_retries_once_after_invalid_llm_response() -> None:
     assert [violation.rule_id for violation in violations] == [
         "unverifiable-superlative"
     ]
+
+def test_prompt_classifies_eye_health_claim_as_medical() -> None:
+    client = RecordingLLMClient(content='{"violations": []}')
+    content = make_content(
+        title="Ноутбук для работы",
+        description="Ноутбук для здоровья глаз.",
+    )
+
+    validate_semantic(content, SEMANTIC_RULES, client)
+
+    prompt = client.messages[0].content
+    assert "здоровье глаз" in prompt
+    assert "medical-claim" in prompt

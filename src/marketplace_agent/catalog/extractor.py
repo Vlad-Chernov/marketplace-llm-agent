@@ -38,9 +38,38 @@ def extract_attributes(
         ),
     )
 
-    return chat_structured(
+    result = chat_structured(
         client=client,
         messages=[Message(role="user", content=prompt)],
         response_schema=AttributeExtractionResult,
         max_retries=1,
     )
+
+    return _normalize_attribute_values(result, attribute_specs)
+
+def _normalize_attribute_values(
+    result: AttributeExtractionResult,
+    attribute_specs: list[AttributeSpec],
+) -> AttributeExtractionResult:
+    specs_by_key = {spec.key: spec for spec in attribute_specs}
+
+    for key, attribute in result.attributes.items():
+        spec = specs_by_key.get(key)
+        if spec is None or attribute.value is None:
+            continue
+
+        try:
+            if spec.type == "integer":
+                value = int(attribute.value)
+            elif spec.type == "number":
+                value = float(attribute.value)
+            else:
+                continue
+        except (TypeError, ValueError):
+            continue
+
+        result.attributes[key] = attribute.model_copy(
+            update={"value": value},
+        )
+
+    return result

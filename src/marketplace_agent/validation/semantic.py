@@ -87,6 +87,7 @@ def _build_messages(
                 '{"violations":[{"rule_id":"...","field":"title или description",'
                 '"evidence":"точная проблемная фраза"}]}. '
                 "Добавляй только нарушения из переданных правил. "
+                "Фраза о пользе для здоровья, включая здоровье глаз, — это medical-claim. "
                 f"Правила: {rules_json}"
             ),
         ),

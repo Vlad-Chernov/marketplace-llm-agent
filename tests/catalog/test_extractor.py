@@ -33,3 +33,29 @@ def test_extractor_keeps_missing_attribute_empty() -> None:
 
     assert result.attributes["ram_gb"].value == "16"
     assert result.attributes["storage_gb"].value is None
+
+def test_extractor_normalizes_numeric_values_by_attribute_spec() -> None:
+    product = generate_clean_products(count=1, seed=7)[0]
+    specs = load_attribute_specs(Path("data/specs/laptops.yaml"))
+    client = FakeLLMClient(
+        chat_responses=[
+            LLMResponse(
+                content=(
+                    '{"attributes":{'
+                    '"screen_diagonal_in":{"value":"14.0","confidence":0.95},'
+                    '"weight_kg":{"value":"1.4","confidence":0.9},'
+                    '"battery_capacity_wh":{"value":"60","confidence":0.9}'
+                    '},"unsupported_facts":[]}'
+                ),
+                model="fake-model",
+                prompt_tokens=1,
+                completion_tokens=1,
+            )
+        ]
+    )
+
+    result = extract_attributes(product, specs, client)
+
+    assert result.attributes["screen_diagonal_in"].value == 14.0
+    assert result.attributes["weight_kg"].value == 1.4
+    assert result.attributes["battery_capacity_wh"].value == 60
