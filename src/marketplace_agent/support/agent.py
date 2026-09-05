@@ -4,10 +4,6 @@ from typing import Any, Literal, Protocol
 from pydantic import BaseModel, ConfigDict, Field
 
 from marketplace_agent.llm.base import LLMClient, Message
-from marketplace_agent.llm.structured import (
-    StructuredOutputError,
-    chat_structured,
-)
 
 
 class ToolRegistry(Protocol):
@@ -48,6 +44,9 @@ class SupportAgent:
     def __init__(self, registry: ToolRegistry, llm: LLMClient) -> None:
         self._registry = registry
         self._llm = llm
+        from marketplace_agent.support.graph import build_support_graph
+
+        self._graph = build_support_graph(registry, llm)
 
     def run(
         self,
@@ -55,7 +54,7 @@ class SupportAgent:
         session_id: str,
         history: list[Message],
     ) -> AgentAnswer:
-        """Run at most three safe tool calls."""
+        """Run one safe support conversation through the graph."""
 
         if self._is_prompt_injection(message):
             return self._escalated("prompt_injection")
@@ -64,72 +63,16 @@ class SupportAgent:
             return self._escalated("forbidden_request")
 
         messages = self._build_messages(message, session_id, history)
-        seen_calls: set[str] = set()
+        result = self._graph.invoke(
+            {
+                "messages": messages,
+                "session_id": session_id,
+                "seen_calls": set(),
+                "tool_steps": 0,
+            }
+        )
 
-        for _ in range(3):
-            try:
-                decision = chat_structured(
-                    client=self._llm,
-                    messages=messages,
-                    response_schema=AgentDecision,
-                    max_retries=0,
-                )
-            except StructuredOutputError:
-                return self._escalated(
-                    "Не удалось безопасно обработать запрос."
-                )
-
-            if decision.kind == "final":
-                if decision.status == "escalated":
-                    return self._escalated("ambiguous_case")
-                
-                if decision.status is None or not decision.text:
-                    return self._escalated("insufficient_data")
-
-                return AgentAnswer(
-                    status=decision.status,
-                    text=decision.text,
-                    citations=decision.citations,
-                )
-
-            if decision.tool_name is None:
-                return self._escalated("Инструмент не указан.")
-
-            arguments = dict(decision.arguments)
-            if decision.tool_name == "get_order":
-                arguments["session_id"] = session_id
-
-            call_signature = json.dumps(
-                {
-                    "name": decision.tool_name,
-                    "arguments": arguments,
-                },
-                ensure_ascii=False,
-                sort_keys=True,
-            )
-            if call_signature in seen_calls:
-                return self._escalated("Инструмент вызван повторно.")
-
-            seen_calls.add(call_signature)
-            tool_result = self._registry.run(
-                decision.tool_name,
-                arguments,
-            )
-            if not tool_result.ok:
-                return self._escalated("tool_error")
-
-            messages.append(
-                Message(
-                    role="user",
-                    content=(
-                        "Результат инструмента. Используй только эти "
-                        "данные для следующего JSON-ответа:\n"
-                        f"{json.dumps(tool_result.model_dump(), ensure_ascii=False)}"
-                    ),
-                )
-            )
-
-        return self._escalated("step_limit")
+        return result["answer"]
 
     def _is_prompt_injection(self, message: str) -> bool:
         normalized = message.casefold()

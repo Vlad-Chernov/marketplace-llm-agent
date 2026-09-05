@@ -1,5 +1,5 @@
 from marketplace_agent.llm.base import FakeLLMClient, LLMResponse
-from marketplace_agent.support.agent import SupportAgent
+from marketplace_agent.support.agent import AgentAnswer, SupportAgent
 from marketplace_agent.support.tools import ToolResult
 
 
@@ -352,3 +352,49 @@ def test_escalates_customer_email_request_without_llm_or_tool() -> None:
 
     assert answer.status == "escalated"
     assert answer.escalation_reason == "forbidden_request"
+
+def test_support_agent_delegates_safe_request_to_graph(
+    monkeypatch,
+) -> None:
+    import marketplace_agent.support.graph as support_graph
+
+    expected = AgentAnswer(
+        status="answered",
+        text="Ответ из графа.",
+        citations=["policy-001"],
+    )
+    received_states: list[dict[str, object]] = []
+
+    class Graph:
+        def invoke(
+            self,
+            state: dict[str, object],
+        ) -> dict[str, AgentAnswer]:
+            received_states.append(state)
+            return {"answer": expected}
+
+    def build_graph(
+        registry: NoCallRegistry,
+        llm: FakeLLMClient,
+    ) -> Graph:
+        assert isinstance(registry, NoCallRegistry)
+        assert isinstance(llm, FakeLLMClient)
+        return Graph()
+
+    monkeypatch.setattr(
+        support_graph,
+        "build_support_graph",
+        build_graph,
+    )
+
+    answer = SupportAgent(
+        registry=NoCallRegistry(),
+        llm=FakeLLMClient(),
+    ).run(
+        message="Вопрос о возврате",
+        session_id="session-001",
+        history=[],
+    )
+
+    assert answer == expected
+    assert received_states[0]["session_id"] == "session-001"
