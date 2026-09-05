@@ -20,6 +20,8 @@ class Settings:
     gigachat_model: str = "GigaChat-2-Pro"
     input_price_per_million: float = 0.0
     output_price_per_million: float = 0.0
+    batch_max_workers: int = 2
+    batch_llm_requests_per_minute: int = 30
 
     @property
     def cache_namespace(self) -> str:
@@ -48,6 +50,10 @@ class Settings:
             "GIGACHAT_AUTHORIZATION_KEY",
             "",
         )
+        batch_max_workers = int(os.getenv("BATCH_MAX_WORKERS", "2"))
+        batch_llm_requests_per_minute = int(
+            os.getenv("BATCH_LLM_REQUESTS_PER_MINUTE", "30")
+        )
 
         if provider == "groq" and not groq_api_key:
             raise ValueError("GROQ_API_KEY is required.")
@@ -57,6 +63,14 @@ class Settings:
 
         if provider == "gigachat" and not gigachat_authorization_key:
             raise ValueError("GIGACHAT_AUTHORIZATION_KEY is required.")
+
+        if batch_max_workers < 1:
+            raise ValueError("BATCH_MAX_WORKERS must be at least 1.")
+
+        if batch_llm_requests_per_minute < 1:
+            raise ValueError(
+                "BATCH_LLM_REQUESTS_PER_MINUTE must be at least 1."
+            )
 
         return cls(
             llm_provider=provider,
@@ -77,5 +91,9 @@ class Settings:
             ),
             output_price_per_million=float(
                 os.getenv("LLM_OUTPUT_PRICE_PER_MILLION", "0.0")
+            ),
+            batch_max_workers=batch_max_workers,
+            batch_llm_requests_per_minute=(
+                batch_llm_requests_per_minute
             ),
         )

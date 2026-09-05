@@ -78,3 +78,14 @@ def test_loads_gigachat_settings_without_other_provider_keys(monkeypatch) -> Non
     assert settings.gigachat_authorization_key == "gigachat-test-key"
     assert settings.gigachat_model == "GigaChat-2-Pro"
     assert settings.cache_namespace == "gigachat:GigaChat-2-Pro"
+
+def test_loads_batch_settings(monkeypatch) -> None:
+    monkeypatch.setenv("LLM_PROVIDER", "groq")
+    monkeypatch.setenv("GROQ_API_KEY", "groq-test-key")
+    monkeypatch.setenv("BATCH_MAX_WORKERS", "2")
+    monkeypatch.setenv("BATCH_LLM_REQUESTS_PER_MINUTE", "30")
+
+    settings = Settings.from_environment()
+
+    assert settings.batch_max_workers == 2
+    assert settings.batch_llm_requests_per_minute == 30
