@@ -199,3 +199,51 @@ def test_batch_resume_skips_previously_successful_sku(
 
     assert list(summary.results) == ["LAP-002"]
     assert calls == []
+
+def test_batch_sends_manual_review_result_to_queue(
+    tmp_path,
+) -> None:
+    store = BatchCheckpointStore(tmp_path / "batch-checkpoints.db")
+
+    def needs_review(
+        product: Product,
+        _: FakeLLMClient,
+    ) -> PipelineResult:
+        return PipelineResult(
+            sku=product.sku,
+            attempts=3,
+            status="manual_review",
+        )
+
+    processor = BatchProcessor(
+        products=FakeProducts({"LAP-002": make_product("LAP-002")}),
+        llm_factory=FakeLLMClient,
+        checkpoint_store=store,
+        pipeline=needs_review,
+    )
+
+    summary = processor.run(["LAP-002"])
+
+    assert summary.results["LAP-002"].status == "manual_review"
+    assert store.load_successes(summary.run_id) == {}
+    assert store.load_manual_review(summary.run_id) == {
+        "LAP-002": "manual_review"
+    }
+
+def test_batch_sends_processing_error_to_manual_review_queue(
+    tmp_path,
+) -> None:
+    store = BatchCheckpointStore(tmp_path / "batch-checkpoints.db")
+    processor = BatchProcessor(
+        products=FakeProducts({"LAP-001": make_product("LAP-001")}),
+        llm_factory=FakeLLMClient,
+        checkpoint_store=store,
+        pipeline=process_product,
+    )
+
+    summary = processor.run(["LAP-001"])
+
+    assert summary.errors == {"LAP-001": "processing failed"}
+    assert store.load_manual_review(summary.run_id) == {
+        "LAP-001": "processing failed",
+    }

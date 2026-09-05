@@ -24,10 +24,12 @@ Pipeline = Callable[[Product, LLMClient], PipelineResult]
 class BatchSummary:
     """Summarize one batch-processing run."""
 
+    run_id: str
     requested_skus: list[str]
     results: dict[str, PipelineResult]
     errors: dict[str, str]
     elapsed_seconds: float
+    throughput_per_second: float
 
 
 class BatchProcessor:
@@ -100,20 +102,53 @@ class BatchProcessor:
 
         for sku in pending_skus:
             try:
-                results[sku] = futures[sku].result()
-                if self._checkpoint_store is not None:
+                result = futures[sku].result()
+                results[sku] = result
+
+                if (
+                    self._checkpoint_store is not None
+                    and result.status == "completed"
+                ):
                     self._checkpoint_store.save_success(
                         run_id,
-                        results[sku],
+                        result,
+                    )
+                elif self._checkpoint_store is not None:
+                    self._checkpoint_store.save_manual_review(
+                        run_id,
+                        result,
+                        result.status,
                     )
             except Exception as error:  # noqa: BLE001
                 errors[sku] = str(error) or type(error).__name__
+                if self._checkpoint_store is not None:
+                    self._checkpoint_store.save_manual_review(
+                        run_id,
+                        PipelineResult(
+                            sku=sku,
+                            attempts=0,
+                            status="manual_review",
+                        ),
+                        errors[sku],
+                    )
 
+
+        elapsed_seconds = monotonic() - started_at
+        completed_count = sum(
+            result.status == "completed"
+            for result in results.values()
+        )
         return BatchSummary(
+            run_id=run_id,
             requested_skus=product_ids,
             results=results,
             errors=errors,
-            elapsed_seconds=monotonic() - started_at,
+            elapsed_seconds=elapsed_seconds,
+            throughput_per_second=(
+                completed_count / elapsed_seconds
+                if elapsed_seconds > 0
+                else 0.0
+            ),
         )
 
     def _process_product(
