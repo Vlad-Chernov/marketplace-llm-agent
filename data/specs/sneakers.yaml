@@ -1,0 +1,96 @@
+category: sneakers
+attributes:
+  - key: size_eu
+    label: EU size
+    type: enum
+    required: true
+    enum_values: ["35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46"]
+    synonyms: [размер, размер EU, европейский размер]
+    affects_filter: true
+
+  - key: upper_material
+    label: Upper material
+    type: enum
+    required: true
+    enum_values: [mesh, textile, leather, synthetic_leather, suede]
+    synonyms: [материал верха, верх, материал кроссовок]
+    affects_filter: true
+
+  - key: sole_material
+    label: Sole material
+    type: enum
+    required: false
+    enum_values: [rubber, eva, foam, polyurethane]
+    synonyms: [материал подошвы, подошва]
+    affects_filter: false
+
+  - key: closure_type
+    label: Closure type
+    type: enum
+    required: true
+    enum_values: [laces, velcro, slip_on]
+    synonyms: [застежка, шнурки, липучка]
+    affects_filter: true
+
+  - key: season
+    label: Season
+    type: enum
+    required: true
+    enum_values: [summer, demi_season, winter]
+    synonyms: [сезон, летние, зимние, демисезонные]
+    affects_filter: true
+
+  - key: color
+    label: Color
+    type: enum
+    required: false
+    enum_values: [black, white, gray, blue, red, beige]
+    synonyms: [цвет, расцветка]
+    affects_filter: true
+
+  - key: gender
+    label: Gender
+    type: enum
+    required: false
+    enum_values: [men, women, unisex]
+    synonyms: [мужские, женские, унисекс]
+    affects_filter: true
+
+  - key: purpose
+    label: Purpose
+    type: enum
+    required: false
+    enum_values: [running, casual, training, basketball, hiking]
+    synonyms: [назначение, бег, повседневные, тренировки]
+    affects_filter: true
+
+  - key: waterproof
+    label: Waterproof
+    type: boolean
+    required: false
+    synonyms: [водонепроницаемые, влагозащита, защита от воды]
+    affects_filter: true
+
+  - key: weight_g
+    label: Weight
+    type: integer
+    required: false
+    unit: g
+    synonyms: [вес, масса]
+    affects_filter: false
+
+  - key: heel_height_mm
+    label: Heel height
+    type: number
+    required: false
+    unit: mm
+    synonyms: [высота подошвы, высота каблука]
+    affects_filter: false
+
+  - key: lining_material
+    label: Lining material
+    type: enum
+    required: false
+    enum_values: [textile, mesh, fleece, leather]
+    synonyms: [подкладка, материал подкладки]
+    affects_filter: false
