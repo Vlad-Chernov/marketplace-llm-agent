@@ -1,10 +1,20 @@
+import json
+from decimal import Decimal
+from pathlib import Path
+
 import pytest
 
-from marketplace_agent.domain.models import RuleViolation
+from marketplace_agent.domain.models import (
+    PipelineResult,
+    Product,
+    RuleViolation,
+)
 from marketplace_agent.evals.content_pipeline import (
     ContentPipelineCaseResult,
     compare_pipeline_versions,
+    run_pipeline_version,
 )
+from marketplace_agent.llm.base import FakeLLMClient
 
 
 def violation(rule_id: str) -> RuleViolation:
@@ -122,3 +132,95 @@ def test_calculates_outcomes_from_statuses() -> None:
     }
     assert comparison.baseline.prompt_tokens == 0
     assert comparison.baseline.completion_tokens == 0
+
+def make_product(sku: str) -> Product:
+    return Product(
+        sku=sku,
+        category="laptops",
+        brand="Lenovo",
+        model="IdeaPad",
+        price=Decimal(75000),
+        sales_count=10,
+        supplier_description="Ноутбук Lenovo.",
+        attributes={},
+    )
+
+
+def test_runs_each_sku_with_a_new_client_and_trace() -> None:
+    created_clients: list[FakeLLMClient] = []
+
+    def llm_factory() -> FakeLLMClient:
+        client = FakeLLMClient()
+        created_clients.append(client)
+        return client
+
+    def completed_pipeline(
+        product: Product,
+        _: FakeLLMClient,
+        __: int,
+    ) -> PipelineResult:
+        return PipelineResult(
+            sku=product.sku,
+            attempts=1,
+            status="completed",
+        )
+
+    results = run_pipeline_version(
+        products=[make_product("LAP-0001"), make_product("LAP-0002")],
+        llm_factory=llm_factory,
+        pipeline=completed_pipeline,
+        max_attempts=3,
+        input_price_per_million=0.0,
+        output_price_per_million=0.0,
+    )
+
+    assert len(created_clients) == 2
+    assert [result.status for result in results] == [
+        "completed",
+        "completed",
+    ]
+    assert results[0].trace[-1]["event_type"] == "completed"
+
+def test_content_pipeline_manifest_has_twelve_unique_skus() -> None:
+    manifest = json.loads(
+        Path("data/gold/content_pipeline_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert len(manifest["skus"]) == 12
+    assert len(set(manifest["skus"])) == 12
+
+def test_treats_status_recovery_as_an_improvement() -> None:
+    legacy_results = [
+        ContentPipelineCaseResult(
+            sku="LAP-0001",
+            status="error",
+            attempts=0,
+            true_attributes={},
+            extracted_attributes={},
+            used_attributes={},
+            violations=[],
+            latency_ms=0,
+            cost_usd=0.0,
+            error="LLMProviderError: HTTP 429",
+        )
+    ]
+    graph_results = [
+        ContentPipelineCaseResult(
+            sku="LAP-0001",
+            status="completed",
+            attempts=1,
+            true_attributes={},
+            extracted_attributes={},
+            used_attributes={},
+            violations=[],
+            latency_ms=0,
+            cost_usd=0.0,
+        )
+    ]
+
+    comparison = compare_pipeline_versions(legacy_results, graph_results)
+
+    assert comparison.corrected_skus == ["LAP-0001"]
+    assert comparison.degraded_skus == []

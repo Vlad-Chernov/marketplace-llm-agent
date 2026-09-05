@@ -1,5 +1,5 @@
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from random import Random
@@ -8,14 +8,19 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from marketplace_agent.content.pipeline import run_content_pipeline
 from marketplace_agent.data_generation.catalog import generate_clean_products
 from marketplace_agent.data_generation.noise import noise_product
-from marketplace_agent.domain.models import Product, RuleViolation
+from marketplace_agent.domain.models import (
+    PipelineResult,
+    Product,
+    RuleViolation,
+)
 from marketplace_agent.evals.attribute_metrics import (
     evaluate_attribute_extraction,
 )
 from marketplace_agent.llm.base import LLMClient, LLMResponse, Message
+
+Pipeline = Callable[[Product, LLMClient, int], PipelineResult]
 
 
 def load_content_pipeline_products(
@@ -189,9 +194,22 @@ def _changed_skus(
         validated_results,
         strict=True,
     ):
-        if improved and len(validated.violations) < len(baseline.violations) or not improved and len(validated.violations) > len(
-            baseline.violations
-        ):
+        status_improved = (
+            baseline.status != "completed"
+            and validated.status == "completed"
+        )
+        status_degraded = (
+            baseline.status == "completed"
+            and validated.status != "completed"
+        )
+        violations_improved = (
+            len(validated.violations) < len(baseline.violations)
+        )
+        violations_degraded = (
+            len(validated.violations) > len(baseline.violations)
+        )
+
+        if improved and (status_improved or violations_improved) or not improved and (status_degraded or violations_degraded):
             changed_skus.append(baseline.sku)
 
     return changed_skus
@@ -250,7 +268,8 @@ class MeteredLLMClient:
 
 def run_pipeline_version(
     products: Sequence[Product],
-    llm: LLMClient,
+    llm_factory: Callable[[], LLMClient],
+    pipeline: Pipeline,
     max_attempts: int,
     input_price_per_million: float,
     output_price_per_million: float,
@@ -261,21 +280,33 @@ def run_pipeline_version(
 
     for product in products:
         metered_llm = MeteredLLMClient(
-            llm,
+            llm_factory(),
             input_price_per_million,
             output_price_per_million,
         )
+        trace: list[dict[str, object]] = [
+            {"event_type": "started", "sku": product.sku}
+        ]
 
         try:
-            pipeline_result = run_content_pipeline(
+            pipeline_result = pipeline(
                 product,
                 metered_llm,
-                max_attempts=max_attempts,
+                max_attempts,
             )
         except Exception as error:  # noqa: BLE001
+            error_text = f"{type(error).__name__}: {error}"
+            trace.append(
+                {
+                    "event_type": "error",
+                    "error_type": type(error).__name__,
+                }
+            )
             results.append(
                 ContentPipelineCaseResult(
                     sku=product.sku,
+                    status="error",
+                    attempts=0,
                     true_attributes=product.true_attributes,
                     extracted_attributes={},
                     used_attributes={},
@@ -285,17 +316,29 @@ def run_pipeline_version(
                     prompt_tokens=metered_llm.prompt_tokens,
                     completion_tokens=metered_llm.completion_tokens,
                     model=metered_llm.model,
-                    error=f"{type(error).__name__}: {error}",
+                    error=error_text,
+                    trace=trace,
                 )
             )
             continue
 
         content = pipeline_result.content
         used_attributes = content.used_attributes if content is not None else {}
+        trace.append(
+            {
+                "event_type": pipeline_result.status,
+                "attempts": pipeline_result.attempts,
+                "violation_rule_ids": [
+                    violation.rule_id for violation in pipeline_result.violations
+                ],
+            }
+        )
 
         results.append(
             ContentPipelineCaseResult(
                 sku=product.sku,
+                status=pipeline_result.status,
+                attempts=pipeline_result.attempts,
                 true_attributes=product.true_attributes,
                 extracted_attributes=used_attributes,
                 used_attributes=used_attributes,
@@ -305,6 +348,7 @@ def run_pipeline_version(
                 prompt_tokens=metered_llm.prompt_tokens,
                 completion_tokens=metered_llm.completion_tokens,
                 model=metered_llm.model,
+                trace=trace,
             )
         )
 

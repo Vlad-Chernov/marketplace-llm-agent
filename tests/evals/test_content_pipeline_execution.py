@@ -1,3 +1,4 @@
+from marketplace_agent.content.pipeline import run_content_pipeline
 from marketplace_agent.evals.content_pipeline import (
     load_content_pipeline_products,
     run_pipeline_version,
@@ -58,7 +59,8 @@ def test_runs_one_pipeline_version_and_collects_usage() -> None:
 
     results = run_pipeline_version(
         [product],
-        client,
+        llm_factory=lambda: client,
+        pipeline=run_content_pipeline,
         max_attempts=1,
         input_price_per_million=1.0,
         output_price_per_million=2.0,
