@@ -46,3 +46,51 @@ semantic_rules:
   - id: competitor-comparison
     description: Нельзя сравнивать товар с конкурентами.
     severity: medium
+
+  - id: guaranteed-result
+    description: Нельзя гарантировать результат использования товара без доказательств.
+    severity: high
+
+  - id: unverified-safety
+    description: Нельзя без доказательств заявлять об абсолютной безопасности товара.
+    severity: high
+
+  - id: unverified-eco
+    description: Нельзя называть товар экологичным без подтверждённых оснований.
+    severity: medium
+
+  - id: legal-guarantee
+    description: Нельзя обещать юридический результат или защиту прав покупателя сверх правил магазина.
+    severity: high
+
+  - id: age-restriction
+    description: Нельзя игнорировать возрастные ограничения товара или заявлять пригодность для любого возраста.
+    severity: medium
+
+  - id: discriminatory-language
+    description: Нельзя использовать дискриминационные или унижающие формулировки.
+    severity: high
+
+  - id: false-urgency
+    description: Нельзя создавать ложную срочность или утверждать об ограниченном остатке без подтверждения.
+    severity: medium
+
+  - id: hidden-conditions
+    description: Нельзя скрывать существенные условия использования, доставки, оплаты или гарантии.
+    severity: high
+
+  - id: misleading-discount
+    description: Нельзя заявлять о скидке или выгоде без проверяемого основания.
+    severity: high
+
+  - id: unverified-compatibility
+    description: Нельзя утверждать совместимость с устройствами или товарами без подтверждения.
+    severity: medium
+
+  - id: sexualized-content
+    description: Нельзя использовать сексуализированный контент для описания товара.
+    severity: high
+
+  - id: prohibited-items
+    description: Нельзя продвигать запрещённые законом товары или способы их использования.
+    severity: critical

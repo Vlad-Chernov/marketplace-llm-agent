@@ -78,6 +78,19 @@ def build_dataset_profile(database_path: Path) -> dict[str, Any]:
             "SELECT category, COUNT(*) FROM products "
             "GROUP BY category ORDER BY category"
         ).fetchall()
+        defect_review_count = connection.execute(
+            "SELECT COUNT(*) FROM reviews WHERE defect_label IS NOT NULL"
+        ).fetchone()[0]
+        personal_data_review_count = connection.execute(
+            "SELECT COUNT(*) FROM reviews WHERE contains_personal_data = 1"
+        ).fetchone()[0]
+        delivery_review_count = connection.execute(
+            "SELECT COUNT(*) FROM reviews WHERE is_delivery_review = 1"
+        ).fetchone()[0]
+        order_status_rows = connection.execute(
+            "SELECT status, COUNT(*) FROM orders "
+            "GROUP BY status ORDER BY status"
+        ).fetchall()
 
     return {
         "products": product_count,
@@ -87,6 +100,20 @@ def build_dataset_profile(database_path: Path) -> dict[str, Any]:
         "ratings": {str(rating): count for rating, count in rating_rows},
         "categories": {
             category: count for category, count in category_rows
+        },
+        "defect_reviews": defect_review_count,
+        "reviews_with_personal_data": personal_data_review_count,
+        "delivery_reviews": delivery_review_count,
+        "review_shares": {
+            "defect": round(defect_review_count / review_count, 3),
+            "personal_data": round(
+                personal_data_review_count / review_count,
+                3,
+            ),
+            "delivery": round(delivery_review_count / review_count, 3),
+        },
+        "order_statuses": {
+            status: count for status, count in order_status_rows
         },
     }
 

@@ -74,3 +74,18 @@ def test_builds_dataset_profile(tmp_path: Path) -> None:
         "sneakers": 133,
     }
     assert sum(profile["ratings"].values()) == 4_000
+    assert profile["defect_reviews"] == 600
+    assert profile["reviews_with_personal_data"] == 200
+    assert profile["delivery_reviews"] == 104
+    assert sum(profile["order_statuses"].values()) == 500
+    assert set(profile["order_statuses"]) == {
+        "cancelled",
+        "created",
+        "delivered",
+        "returned",
+    }
+    assert profile["review_shares"] == {
+        "defect": 0.15,
+        "personal_data": 0.05,
+        "delivery": 0.026,
+    }

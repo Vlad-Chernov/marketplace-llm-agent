@@ -13,7 +13,11 @@ def test_rules_fixture_contains_deterministic_and_semantic_rules() -> None:
     assert "emoji-spam" in {
         rule["id"] for rule in data["deterministic_rules"]
 }
-    assert len(data["semantic_rules"]) == 3
+    assert len(data["semantic_rules"]) == 15
+    assert (
+        len(data["deterministic_rules"])
+        + len(data["semantic_rules"])
+    ) == 20
 
     rule_ids = [
         rule["id"]
