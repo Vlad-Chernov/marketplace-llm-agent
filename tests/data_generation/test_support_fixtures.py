@@ -23,12 +23,18 @@ def test_rules_fixture_contains_deterministic_and_semantic_rules() -> None:
     assert len(rule_ids) == len(set(rule_ids))
 
 
-def test_support_fixture_contains_four_documents() -> None:
+def test_support_fixture_contains_ten_documents() -> None:
     document_names = {path.name for path in SUPPORT_PATH.glob("*.md")}
 
     assert document_names == {
-        "returns.md",
+        "cancellation.md",
         "delivery.md",
-        "warranty.md",
         "exchange.md",
+        "kettles.md",
+        "laptops.md",
+        "order_status.md",
+        "payment.md",
+        "returns.md",
+        "sneakers.md",
+        "warranty.md",
     }

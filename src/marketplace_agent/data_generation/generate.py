@@ -6,7 +6,7 @@ from pathlib import Path
 from random import Random
 from typing import Any
 
-from marketplace_agent.data_generation.catalog import generate_clean_products
+from marketplace_agent.data_generation.catalog import generate_scaled_catalog
 from marketplace_agent.data_generation.noise import noise_product
 from marketplace_agent.data_generation.reviews import generate_reviews
 from marketplace_agent.data_generation.support import generate_orders
@@ -25,11 +25,11 @@ def generate_dataset(
 ) -> None:
     """Generate and persist the complete MVP synthetic dataset."""
 
-    clean_products = generate_clean_products(count=40, seed=seed)
+    clean_products = generate_scaled_catalog(seed=seed)
     rng = Random(seed)
     products = [noise_product(product, rng) for product in clean_products]
-    reviews = generate_reviews(products, count=200, seed=seed)
-    orders = generate_orders(products, count=60, seed=seed)
+    reviews = generate_reviews(products, count=4_000, seed=seed)
+    orders = generate_orders(products, count=500, seed=seed)
 
     initialize_database(database_path)
     ProductRepository(database_path).save_many(products)
@@ -74,6 +74,10 @@ def build_dataset_profile(database_path: Path) -> dict[str, Any]:
         rating_rows = connection.execute(
             "SELECT rating, COUNT(*) FROM reviews GROUP BY rating ORDER BY rating"
         ).fetchall()
+        category_rows = connection.execute(
+            "SELECT category, COUNT(*) FROM products "
+            "GROUP BY category ORDER BY category"
+        ).fetchall()
 
     return {
         "products": product_count,
@@ -81,6 +85,9 @@ def build_dataset_profile(database_path: Path) -> dict[str, Any]:
         "orders": order_count,
         "average_rating": round(float(average_rating), 2),
         "ratings": {str(rating): count for rating, count in rating_rows},
+        "categories": {
+            category: count for category, count in category_rows
+        },
     }
 
 def calculate_sha256(path: Path) -> str:
