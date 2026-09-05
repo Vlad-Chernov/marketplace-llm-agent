@@ -95,3 +95,18 @@ def test_masks_canonical_order_identifier() -> None:
         "Проверьте статус заказа [ORDER]."
     )
     assert result.redacted_review_ids == ["REV-000005"]
+
+def test_masks_person_name_and_address() -> None:
+    result = clean_reviews(
+        [
+            make_review(
+                "REV-000006",
+                "Анна Петрова: улица Ленина, дом 10. Товар греется.",
+            )
+        ]
+    )
+
+    assert result.reviews[0].text == (
+        "[PERSON]: [ADDRESS]. Товар греется."
+    )
+    assert result.redacted_review_ids == ["REV-000006"]

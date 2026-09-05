@@ -5,7 +5,7 @@ from difflib import SequenceMatcher
 from pydantic import BaseModel
 
 from marketplace_agent.domain.models import Review
-from marketplace_agent.privacy.pii import redact_pii
+from marketplace_agent.privacy.pii import PiiRedactor
 
 HTML_TAG_PATTERN = re.compile(r"<[^>]+>")
 WHITESPACE_PATTERN = re.compile(r"\s+")
@@ -40,23 +40,31 @@ def clean_reviews(reviews: list[Review]) -> ReviewCleaningResult:
     duplicate_review_ids: list[str] = []
     kept_texts_by_sku: dict[str, list[str]] = {}
 
-    for review in reviews:
-        cleaned_text, was_redacted = _clean_text(review.text)
+    redactor = PiiRedactor()
+    try:
+        for review in reviews:
+            cleaned_text, was_redacted = _clean_text(
+                review.text,
+                redactor,
+            )
 
-        if _is_useless(cleaned_text):
-            discarded_review_ids.append(review.review_id)
-            continue
+            if _is_useless(cleaned_text):
+                discarded_review_ids.append(review.review_id)
+                continue
 
-        if was_redacted:
-            redacted_review_ids.append(review.review_id)
+            if was_redacted:
+                redacted_review_ids.append(review.review_id)
 
-        kept_texts = kept_texts_by_sku.setdefault(review.sku, [])
-        if _is_duplicate(cleaned_text, kept_texts):
-            duplicate_review_ids.append(review.review_id)
-            continue
+            kept_texts = kept_texts_by_sku.setdefault(review.sku, [])
+            if _is_duplicate(cleaned_text, kept_texts):
+                duplicate_review_ids.append(review.review_id)
+                continue
 
-        kept_texts.append(cleaned_text)
-        cleaned_reviews.append(review.model_copy(update={"text": cleaned_text}))
+            kept_texts.append(cleaned_text)
+            cleaned_reviews.append(review.model_copy(update={"text": cleaned_text}))
+
+    finally:
+        redactor.close()
 
     return ReviewCleaningResult(
         reviews=cleaned_reviews,
@@ -66,12 +74,15 @@ def clean_reviews(reviews: list[Review]) -> ReviewCleaningResult:
     )
 
 
-def _clean_text(text: str) -> tuple[str, bool]:
+def _clean_text(
+    text: str,
+    redactor: PiiRedactor,
+) -> tuple[str, bool]:
     normalized_text = WHITESPACE_PATTERN.sub(
         " ",
         HTML_TAG_PATTERN.sub(" ", html.unescape(text)),
     ).strip()
-    redacted_text = redact_pii(normalized_text)
+    redacted_text = redactor.redact(normalized_text)
     return redacted_text, redacted_text != normalized_text
 
 
