@@ -48,15 +48,31 @@ class EvaluationRun:
     results: list[EvaluationResult]
 
 
+@dataclass(frozen=True)
+class EvaluationProgress:
+    """Progress information emitted after a completed evaluation case."""
+
+    current: int
+    total: int
+    case_id: str
+    case_type: str
+    elapsed_seconds: float
+    estimated_remaining_seconds: float
+
+
 def run_evaluation(
     cases: Sequence[GoldenCase],
     suite: str,
     version: str,
     execute_case: Callable[[GoldenCase], EvaluationPrediction],
+    progress_callback: Callable[[EvaluationProgress], None] | None = None,
 ) -> EvaluationRun:
     results: list[EvaluationResult] = []
 
-    for case in cases:
+    total_cases = len(cases)
+    run_started_at = perf_counter()
+
+    for index, case in enumerate(cases, start=1):
         started_at = perf_counter()
 
         try:
@@ -79,25 +95,40 @@ def run_evaluation(
                     expected_tool_calls=case.must_call_tools,
                 )
             )
-            continue
-
-        results.append(
-            EvaluationResult(
-                case_id=case.id,
-                case_type=case.type,
-                prediction=prediction.prediction,
-                raw_response=prediction.raw_response,
-                model=prediction.model,
-                reference=case.expected_answer,
-                error=None,
-                latency_ms=prediction.latency_ms,
-                prompt_tokens=prediction.prompt_tokens,
-                completion_tokens=prediction.completion_tokens,
-                cost_usd=prediction.cost_usd,
-                tool_calls=prediction.tool_calls,
-                expected_tool_calls=case.must_call_tools,
+        else:
+            results.append(
+                EvaluationResult(
+                    case_id=case.id,
+                    case_type=case.type,
+                    prediction=prediction.prediction,
+                    raw_response=prediction.raw_response,
+                    model=prediction.model,
+                    reference=case.expected_answer,
+                    error=None,
+                    latency_ms=prediction.latency_ms,
+                    prompt_tokens=prediction.prompt_tokens,
+                    completion_tokens=prediction.completion_tokens,
+                    cost_usd=prediction.cost_usd,
+                    tool_calls=prediction.tool_calls,
+                    expected_tool_calls=case.must_call_tools,
+                )
             )
-        )
+
+        if progress_callback is not None:
+            elapsed_seconds = perf_counter() - run_started_at
+            average_seconds = elapsed_seconds / index
+            progress_callback(
+                EvaluationProgress(
+                    current=index,
+                    total=total_cases,
+                    case_id=case.id,
+                    case_type=case.type,
+                    elapsed_seconds=elapsed_seconds,
+                    estimated_remaining_seconds=(
+                        average_seconds * (total_cases - index)
+                    ),
+                )
+            )
 
     return EvaluationRun(
         run_id=uuid4().hex,

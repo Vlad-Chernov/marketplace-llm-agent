@@ -77,6 +77,15 @@ UV_CACHE_DIR=/private/tmp/marketplace-agent-uv-cache make demo
 UV_CACHE_DIR=/private/tmp/marketplace-agent-uv-cache make eval
 ```
 
+Чтобы видеть длительность LLM-запросов и примерное оставшееся время
+оценки, включи прогресс только для одной команды:
+
+```bash
+LLM_PROGRESS=1 UV_CACHE_DIR=/private/tmp/marketplace-agent-uv-cache make eval
+```
+
+Для обычного тихого запуска оставь `LLM_PROGRESS=0`.
+
 ## Архитектура
 
 ```text

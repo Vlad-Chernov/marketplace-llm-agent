@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -15,9 +16,10 @@ from marketplace_agent.evals.mvp_final import (
 from marketplace_agent.evals.recording_registry import (
     RecordingToolRegistry,
 )
-from marketplace_agent.evals.runner import save_run
+from marketplace_agent.evals.runner import EvaluationProgress, save_run
 from marketplace_agent.llm.cache import CachedLLMClient
 from marketplace_agent.llm.factory import create_llm_client
+from marketplace_agent.llm.progress import ProgressLLMClient
 from marketplace_agent.retrieval.documents import load_policy_chunks
 from marketplace_agent.retrieval.hybrid import HybridRetriever
 from marketplace_agent.retrieval.lexical import BM25Retriever
@@ -38,12 +40,24 @@ from marketplace_agent.support.tools import (
 )
 
 
+def _print_progress(progress: EvaluationProgress) -> None:
+    print(
+        f"[{progress.current}/{progress.total}] {progress.case_type}: "
+        f"готово; ETA ~{progress.estimated_remaining_seconds:.0f} с"
+    )
+
+
 def main() -> None:
     """Run all MVP golden cases through the real application modules."""
 
     settings = Settings.from_environment()
+    llm = create_llm_client(settings)
+    progress_enabled = os.getenv("LLM_PROGRESS") == "1"
+    if progress_enabled:
+        llm = ProgressLLMClient(llm)
+
     cached_llm = CachedLLMClient(
-        create_llm_client(settings),
+        llm,
         cache_path=(
             PROJECT_ROOT / "data" / "cache" / "mvp-final-llm.json"
         ),
@@ -91,7 +105,13 @@ def main() -> None:
         PROJECT_ROOT / "data" / "gold" / "mvp_cases.json"
     )
 
-    run = run_mvp_final(cases, executor.execute)
+    run = run_mvp_final(
+        cases,
+        executor.execute,
+        progress_callback=(
+            _print_progress if progress_enabled else None
+        ),
+    )
     output_path = save_run(
         run,
         PROJECT_ROOT / "evals" / "results",

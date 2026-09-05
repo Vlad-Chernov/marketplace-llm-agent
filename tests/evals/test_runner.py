@@ -3,6 +3,7 @@ from pathlib import Path
 from marketplace_agent.evals.models import GoldenCase
 from marketplace_agent.evals.runner import (
     EvaluationPrediction,
+    EvaluationProgress,
     append_report_summary,
     load_evaluation_run,
     run_evaluation,
@@ -98,3 +99,60 @@ def test_loads_saved_evaluation_run(tmp_path: Path) -> None:
     assert loaded_run.run_id == run.run_id
     assert loaded_run.suite == "mvp-final"
     assert loaded_run.results[0] == run.results[0]
+
+
+def test_reports_completed_case_with_estimated_remaining_time(
+    monkeypatch,
+) -> None:
+    cases = [
+        GoldenCase(
+            id=f"gold-00{index}",
+            question="Вопрос",
+            type="attribute_extraction",
+            input={"supplier_description": "Описание"},
+            expected_answer={},
+            origin="manual",
+        )
+        for index in range(1, 3)
+    ]
+    progress_events: list[EvaluationProgress] = []
+    clock_values = iter([0.0, 0.0, 2.0, 2.0, 5.0])
+    monkeypatch.setattr(
+        "marketplace_agent.evals.runner.perf_counter",
+        lambda: next(clock_values),
+    )
+
+    run_evaluation(
+        cases=cases,
+        suite="mvp",
+        version="baseline",
+        execute_case=lambda _: EvaluationPrediction(
+            prediction={},
+            raw_response="{}",
+            model="fake-model",
+            latency_ms=0,
+            prompt_tokens=0,
+            completion_tokens=0,
+            cost_usd=0.0,
+        ),
+        progress_callback=progress_events.append,
+    )
+
+    assert progress_events == [
+        EvaluationProgress(
+            current=1,
+            total=2,
+            case_id="gold-001",
+            case_type="attribute_extraction",
+            elapsed_seconds=2.0,
+            estimated_remaining_seconds=2.0,
+        ),
+        EvaluationProgress(
+            current=2,
+            total=2,
+            case_id="gold-002",
+            case_type="attribute_extraction",
+            elapsed_seconds=5.0,
+            estimated_remaining_seconds=0.0,
+        ),
+    ]

@@ -5,6 +5,7 @@ from pathlib import Path
 from marketplace_agent.evals.models import GoldenCase
 from marketplace_agent.evals.runner import (
     EvaluationPrediction,
+    EvaluationProgress,
     EvaluationRun,
     run_evaluation,
 )
@@ -23,6 +24,7 @@ def load_golden_cases(path: Path) -> list[GoldenCase]:
 def run_mvp_final(
     cases: Sequence[GoldenCase],
     execute_case: Callable[[GoldenCase], EvaluationPrediction],
+    progress_callback: Callable[[EvaluationProgress], None] | None = None,
 ) -> EvaluationRun:
     """Запустить полный MVP-набор через переданный executor."""
 
@@ -31,4 +33,5 @@ def run_mvp_final(
         suite="mvp-final",
         version="MVP-final",
         execute_case=execute_case,
+        progress_callback=progress_callback,
     )
