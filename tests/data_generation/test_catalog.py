@@ -1,4 +1,7 @@
-from marketplace_agent.data_generation.catalog import generate_clean_products
+from marketplace_agent.data_generation.catalog import (
+    generate_clean_products,
+    generate_scaled_catalog,
+)
 
 
 def test_generates_same_products_for_same_seed() -> None:
@@ -26,3 +29,16 @@ def test_generates_valid_laptop_products() -> None:
         assert product.sales_count >= 0
         assert len(product.true_attributes) == 12
         assert product.attributes == product.true_attributes
+
+
+def test_generates_scaled_catalog_with_three_fixed_categories() -> None:
+    products = generate_scaled_catalog(seed=42)
+
+    assert len(products) == 400
+    assert sum(product.category == "laptops" for product in products) == 134
+    assert sum(product.category == "sneakers" for product in products) == 133
+    assert sum(product.category == "kettles" for product in products) == 133
+    assert len({product.sku for product in products}) == 400
+    assert all(product.sku.startswith("LAP-") for product in products[:134])
+    assert all(product.sku.startswith("SNK-") for product in products[134:267])
+    assert all(product.sku.startswith("KTL-") for product in products[267:])

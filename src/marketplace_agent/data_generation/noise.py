@@ -18,6 +18,11 @@ ATTRIBUTE_LABELS = {
     "refresh_rate_hz": "Частота обновления",
 }
 
+CATEGORY_NAMES = {
+    "laptops": "Ноутбук",
+    "sneakers": "Кроссовки",
+    "kettles": "Электрочайник",
+}
 
 def noise_product(product: Product, rng: Random) -> Product:
     """Create a noisy supplier version without changing hidden true attributes."""
@@ -29,10 +34,15 @@ def noise_product(product: Product, rng: Random) -> Product:
     }
 
     facts = [
-        f"{ATTRIBUTE_LABELS[key]}: {value}"
+        f"{ATTRIBUTE_LABELS.get(key, key.replace('_', ' '))}: {value}"
         for key, value in product.true_attributes.items()
     ]
-    description = f"Ноутбук {product.brand} {product.model}. " + ". ".join(facts) + "."
+    product_name = CATEGORY_NAMES[product.category]
+    description = (
+        f"{product_name} {product.brand} {product.model}. "
+        + ". ".join(facts)
+        + "."
+    )
 
     if rng.random() < 0.10:
         description = description.replace("Ноутбук", "Ноутбк")
