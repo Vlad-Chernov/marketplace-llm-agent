@@ -2,11 +2,11 @@
   "generator_version": "1.0",
   "seed": 42,
   "counts": {
-    "products": 40,
-    "reviews": 200,
-    "orders": 60
+    "products": 400,
+    "reviews": 4000,
+    "orders": 500
   },
   "files": {
-    "database_sha256": "9077caf852b599c69c1789fb1a6517ae950666df5719fc172c32337ca424ca9e"
+    "database_sha256": "35630f1ede46ce0b227cad1f42fbdac740bdc9a0e36d2e783a72d62757b907a9"
   }
 }
