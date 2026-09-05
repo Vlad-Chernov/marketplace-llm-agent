@@ -5,14 +5,10 @@ from difflib import SequenceMatcher
 from pydantic import BaseModel
 
 from marketplace_agent.domain.models import Review
+from marketplace_agent.privacy.pii import redact_pii
 
 HTML_TAG_PATTERN = re.compile(r"<[^>]+>")
 WHITESPACE_PATTERN = re.compile(r"\s+")
-PHONE_PATTERN = re.compile(
-    r"\+7\s*\d{3}\s*\d{3}[-\s]?\d{2}[-\s]?\d{2}"
-)
-EMAIL_PATTERN = re.compile(r"\b[\w.+-]+@[\w.-]+\.\w+\b")
-ORDER_NUMBER_PATTERN = re.compile(r"№\s*\d+")
 
 USELESS_TEXTS = {"норм", "ок", "спасибо", "хорошо"}
 DEFECT_MARKERS = (
@@ -75,9 +71,7 @@ def _clean_text(text: str) -> tuple[str, bool]:
         " ",
         HTML_TAG_PATTERN.sub(" ", html.unescape(text)),
     ).strip()
-    redacted_text = PHONE_PATTERN.sub("[PHONE]", normalized_text)
-    redacted_text = EMAIL_PATTERN.sub("[EMAIL]", redacted_text)
-    redacted_text = ORDER_NUMBER_PATTERN.sub("[ORDER]", redacted_text)
+    redacted_text = redact_pii(normalized_text)
     return redacted_text, redacted_text != normalized_text
 
 

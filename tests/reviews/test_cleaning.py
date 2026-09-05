@@ -80,3 +80,18 @@ def test_removes_duplicates_only_inside_one_sku() -> None:
         "REV-000002",
         "REV-000003",
     ]
+
+def test_masks_canonical_order_identifier() -> None:
+    result = clean_reviews(
+        [
+            make_review(
+                "REV-000005",
+                "Проверьте статус заказа ORD-000001.",
+            )
+        ]
+    )
+
+    assert result.reviews[0].text == (
+        "Проверьте статус заказа [ORDER]."
+    )
+    assert result.redacted_review_ids == ["REV-000005"]
