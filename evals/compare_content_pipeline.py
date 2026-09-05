@@ -1,6 +1,7 @@
 import argparse
 import hashlib
 import json
+import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -107,6 +108,14 @@ def configured_model(settings: Settings) -> str:
     }[settings.llm_provider]
 
 
+def print_progress(event: dict[str, object]) -> None:
+    print(
+        f"[{event['version']}] {event['position']}/{event['total']} "
+        f"{event['sku']}: {event['event_type']}",
+        flush=True,
+    )
+
+
 def main() -> None:
     arguments = parse_arguments()
     manifest_path = PROJECT_ROOT / "data/gold/content_pipeline_manifest.json"
@@ -122,6 +131,7 @@ def main() -> None:
         if arguments.output_price_per_million is not None
         else settings.output_price_per_million
     )
+    progress = print_progress if os.getenv("LLM_PROGRESS") == "1" else None
 
     legacy_results = run_pipeline_version(
         products,
@@ -130,6 +140,8 @@ def main() -> None:
         max_attempts=arguments.max_attempts,
         input_price_per_million=input_price,
         output_price_per_million=output_price,
+        version=arguments.legacy_version,
+        progress=progress,
     )
     graph_results = run_pipeline_version(
         products,
@@ -138,6 +150,8 @@ def main() -> None:
         max_attempts=arguments.max_attempts,
         input_price_per_million=input_price,
         output_price_per_million=output_price,
+        version=arguments.graph_version,
+        progress=progress,
     )
     comparison = compare_pipeline_versions(legacy_results, graph_results)
 

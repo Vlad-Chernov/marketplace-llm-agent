@@ -222,10 +222,12 @@ class MeteredLLMClient:
         client: LLMClient,
         input_price_per_million: float,
         output_price_per_million: float,
+        on_chat_start: Callable[[], None] | None = None,
     ) -> None:
         self._client = client
         self._input_price_per_million = input_price_per_million
         self._output_price_per_million = output_price_per_million
+        self._on_chat_start = on_chat_start
         self.latency_ms = 0
         self.prompt_tokens = 0
         self.completion_tokens = 0
@@ -248,6 +250,8 @@ class MeteredLLMClient:
         temperature: float,
         max_tokens: int,
     ) -> LLMResponse:
+        if self._on_chat_start is not None:
+            self._on_chat_start()
         started_at = perf_counter()
         response = self._client.chat(
             messages=messages,
@@ -273,20 +277,38 @@ def run_pipeline_version(
     max_attempts: int,
     input_price_per_million: float,
     output_price_per_million: float,
+    version: str = "pipeline",
+    progress: Callable[[dict[str, object]], None] | None = None,
 ) -> list[ContentPipelineCaseResult]:
     """Run one pipeline version for a fixed product subset."""
 
     results: list[ContentPipelineCaseResult] = []
 
-    for product in products:
+    for position, product in enumerate(products, start=1):
+        progress_event = {
+            "version": version,
+            "sku": product.sku,
+            "position": position,
+            "total": len(products),
+        }
+
+        def report_llm_call(
+            event: dict[str, object] = progress_event,
+        ) -> None:
+            if progress is not None:
+                progress({"event_type": "llm_call_started", **event})
+
         metered_llm = MeteredLLMClient(
             llm_factory(),
             input_price_per_million,
             output_price_per_million,
+            on_chat_start=report_llm_call,
         )
         trace: list[dict[str, object]] = [
             {"event_type": "started", "sku": product.sku}
         ]
+        if progress is not None:
+            progress({"event_type": "started", **progress_event})
 
         try:
             pipeline_result = pipeline(
@@ -320,6 +342,8 @@ def run_pipeline_version(
                     trace=trace,
                 )
             )
+            if progress is not None:
+                progress({"event_type": "error", **progress_event})
             continue
 
         content = pipeline_result.content
@@ -351,5 +375,12 @@ def run_pipeline_version(
                 trace=trace,
             )
         )
+        if progress is not None:
+            progress(
+                {
+                    "event_type": pipeline_result.status,
+                    **progress_event,
+                }
+            )
 
     return results

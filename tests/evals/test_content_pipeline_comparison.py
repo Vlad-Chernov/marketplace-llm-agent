@@ -14,7 +14,7 @@ from marketplace_agent.evals.content_pipeline import (
     compare_pipeline_versions,
     run_pipeline_version,
 )
-from marketplace_agent.llm.base import FakeLLMClient
+from marketplace_agent.llm.base import FakeLLMClient, LLMResponse, Message
 
 
 def violation(rule_id: str) -> RuleViolation:
@@ -180,6 +180,97 @@ def test_runs_each_sku_with_a_new_client_and_trace() -> None:
         "completed",
     ]
     assert results[0].trace[-1]["event_type"] == "completed"
+
+
+def test_reports_progress_for_each_pipeline_outcome() -> None:
+    events: list[dict[str, object]] = []
+
+    def completed_pipeline(
+        product: Product,
+        _: FakeLLMClient,
+        __: int,
+    ) -> PipelineResult:
+        return PipelineResult(
+            sku=product.sku,
+            attempts=1,
+            status="completed",
+        )
+
+    run_pipeline_version(
+        products=[make_product("LAP-0001")],
+        llm_factory=FakeLLMClient,
+        pipeline=completed_pipeline,
+        max_attempts=3,
+        input_price_per_million=0.0,
+        output_price_per_million=0.0,
+        version="langgraph-v1",
+        progress=events.append,
+    )
+
+    assert events == [
+        {
+            "event_type": "started",
+            "version": "langgraph-v1",
+            "sku": "LAP-0001",
+            "position": 1,
+            "total": 1,
+        },
+        {
+            "event_type": "completed",
+            "version": "langgraph-v1",
+            "sku": "LAP-0001",
+            "position": 1,
+            "total": 1,
+        },
+    ]
+
+
+def test_reports_progress_before_each_llm_call() -> None:
+    events: list[dict[str, object]] = []
+
+    def pipeline_that_calls_llm(
+        product: Product,
+        llm: FakeLLMClient,
+        _: int,
+    ) -> PipelineResult:
+        llm.chat(
+            messages=[Message(role="user", content="Технический запрос")],
+            tools=None,
+            response_schema=None,
+            temperature=0.0,
+            max_tokens=10,
+        )
+        return PipelineResult(
+            sku=product.sku,
+            attempts=1,
+            status="completed",
+        )
+
+    run_pipeline_version(
+        products=[make_product("LAP-0001")],
+        llm_factory=lambda: FakeLLMClient(
+            [
+                LLMResponse(
+                    content="ОК",
+                    model="fake-model",
+                    prompt_tokens=1,
+                    completion_tokens=1,
+                )
+            ]
+        ),
+        pipeline=pipeline_that_calls_llm,
+        max_attempts=3,
+        input_price_per_million=0.0,
+        output_price_per_million=0.0,
+        version="langgraph-v1",
+        progress=events.append,
+    )
+
+    assert [event["event_type"] for event in events] == [
+        "started",
+        "llm_call_started",
+        "completed",
+    ]
 
 def test_content_pipeline_manifest_has_twelve_unique_skus() -> None:
     manifest = json.loads(
