@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 
 import pytest
@@ -191,3 +192,58 @@ def test_rejects_non_positive_attempt_limit() -> None:
             FakeLLMClient(),
             max_attempts=0,
         )
+
+def test_sends_three_distinct_invalid_cards_to_manual_review() -> None:
+    extracted_attributes = {
+        "attributes": {
+            "screen_diagonal_in": {
+                "value": 14.0,
+                "confidence": 0.95,
+            },
+            "storage_gb": {
+                "value": "512",
+                "confidence": 0.95,
+            },
+        },
+        "unsupported_facts": [],
+    }
+
+    def invalid_content(title: str) -> str:
+        return json.dumps(
+            {
+                "title": title,
+                "bullets": ["Экран 14 дюймов"],
+                "description": (
+                    "Ноутбук Lenovo с экраном 14 дюймов и SSD 512 ГБ."
+                ),
+                "keywords": ["ноутбук"],
+                "used_attributes": {
+                    "screen_diagonal_in": 14.0,
+                    "storage_gb": "512",
+                },
+            },
+            ensure_ascii=False,
+        )
+
+    client = FakeLLMClient(
+        chat_responses=[
+            response(json.dumps(extracted_attributes)),
+            response(invalid_content("Коротко 1")),
+            response('{"unsupported_claims": []}'),
+            response('{"violations": []}'),
+            response(invalid_content("Коротко 2")),
+            response('{"unsupported_claims": []}'),
+            response('{"violations": []}'),
+            response(invalid_content("Коротко 3")),
+            response('{"unsupported_claims": []}'),
+            response('{"violations": []}'),
+        ]
+    )
+
+    result = run_content_pipeline(make_product(), client)
+
+    assert result.status == "manual_review"
+    assert result.attempts == 3
+    assert [violation.rule_id for violation in result.violations] == [
+        "title-length"
+    ]
