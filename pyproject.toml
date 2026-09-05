@@ -10,7 +10,9 @@ dependencies = [
     "pydantic>=2.13.4",
     "python-dotenv>=1.2.2",
     "pyyaml>=6.0.3",
+    "ru-core-news-sm",
     "sentence-transformers>=6.0.0",
+    "spacy>=3.8.0,<3.9.0",
 ]
 
 [dependency-groups]
@@ -21,3 +23,6 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+
+[tool.uv.sources]
+ru-core-news-sm = { url = "https://github.com/explosion/spacy-models/releases/download/ru_core_news_sm-3.8.0/ru_core_news_sm-3.8.0-py3-none-any.whl" }
