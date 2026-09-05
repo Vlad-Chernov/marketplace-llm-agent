@@ -8,6 +8,7 @@ from typing import Any
 from uuid import uuid4
 
 from marketplace_agent.evals.models import GoldenCase
+from marketplace_agent.privacy.pii import PiiRedactor
 
 
 @dataclass(frozen=True)
@@ -154,6 +155,28 @@ def load_evaluation_run(path: Path) -> EvaluationRun:
         ],
     )
 
+def _serialize_result(
+    result: EvaluationResult,
+    redactor: PiiRedactor,
+) -> dict[str, Any]:
+    serialized = asdict(result)
+
+    for field_name in ("raw_response", "error"):
+        value = serialized[field_name]
+        if value is not None:
+            serialized[field_name] = redactor.redact(value)
+
+    return serialized
+
+def _serialize_results(
+    results: list[EvaluationResult],
+) -> list[dict[str, Any]]:
+    with PiiRedactor() as redactor:
+        return [
+            _serialize_result(result, redactor)
+            for result in results
+        ]
+
 def save_run(run: EvaluationRun, output_directory: Path) -> Path:
     output_directory.mkdir(parents=True, exist_ok=True)
     file_name = f"{run.run_id}-{uuid4().hex[:8]}.json"
@@ -164,7 +187,7 @@ def save_run(run: EvaluationRun, output_directory: Path) -> Path:
         "suite": run.suite,
         "version": run.version,
         "created_at": run.created_at,
-        "results": [asdict(result) for result in run.results],
+        "results": _serialize_results(run.results),
     }
     output_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),

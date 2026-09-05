@@ -4,6 +4,8 @@ from marketplace_agent.evals.models import GoldenCase
 from marketplace_agent.evals.runner import (
     EvaluationPrediction,
     EvaluationProgress,
+    EvaluationResult,
+    EvaluationRun,
     append_report_summary,
     load_evaluation_run,
     run_evaluation,
@@ -156,3 +158,57 @@ def test_reports_completed_case_with_estimated_remaining_time(
             estimated_remaining_seconds=0.0,
         ),
     ]
+def test_save_run_redacts_pii_from_raw_response_and_error(
+    tmp_path: Path,
+) -> None:
+    run = EvaluationRun(
+        run_id="run-pii",
+        suite="mvp",
+        version="test",
+        created_at="2026-09-05T00:00:00+00:00",
+        results=[
+            EvaluationResult(
+                case_id="gold-pii-001",
+                case_type="support",
+                prediction={},
+                raw_response=(
+                    "Анна Петрова, телефон +7 900 111-22-33."
+                ),
+                model="fake-model",
+                reference={},
+                error=None,
+                latency_ms=0,
+                prompt_tokens=0,
+                completion_tokens=0,
+                cost_usd=0.0,
+            ),
+            EvaluationResult(
+                case_id="gold-pii-002",
+                case_type="support",
+                prediction=None,
+                raw_response=None,
+                model=None,
+                reference={},
+                error=(
+                    "Ошибка для anna@example.com: "
+                    "улица Ленина, дом 10."
+                ),
+                latency_ms=0,
+                prompt_tokens=0,
+                completion_tokens=0,
+                cost_usd=0.0,
+            ),
+        ],
+    )
+
+    output_path = save_run(run, tmp_path)
+    saved_text = output_path.read_text(encoding="utf-8")
+
+    assert "Анна Петрова" not in saved_text
+    assert "+7 900 111-22-33" not in saved_text
+    assert "anna@example.com" not in saved_text
+    assert "улица Ленина, дом 10" not in saved_text
+    assert "[PERSON]" in saved_text
+    assert "[PHONE]" in saved_text
+    assert "[EMAIL]" in saved_text
+    assert "[ADDRESS]" in saved_text

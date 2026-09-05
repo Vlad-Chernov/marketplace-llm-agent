@@ -4,7 +4,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from marketplace_agent.privacy.pii import PiiRedactor
+
 SENSITIVE_KEYS = {"api_key", "authorization", "token", "password"}
+
 
 @dataclass(frozen=True)
 class UsageRecord:
@@ -25,9 +28,12 @@ class UsageRecord:
             self.prompt_tokens / 1_000_000 * self.input_price_per_million
         )
         output_cost = (
-            self.completion_tokens / 1_000_000 * self.output_price_per_million
+            self.completion_tokens
+            / 1_000_000
+            * self.output_price_per_million
         )
         return input_cost + output_cost
+
 
 class TraceWriter:
     """Write sanitized trace events to a JSONL file."""
@@ -49,16 +55,35 @@ class TraceWriter:
             "timestamp": datetime.now(UTC).isoformat(),
             "event_type": event_type,
             "run_id": run_id,
-            "payload": self._remove_sensitive_values(payload),
+            "payload": self._sanitize_payload(payload),
         }
 
         with self.trace_path.open("a", encoding="utf-8") as file:
             file.write(json.dumps(event, ensure_ascii=False) + "\n")
 
-    @staticmethod
-    def _remove_sensitive_values(payload: dict[str, Any]) -> dict[str, Any]:
-        return {
-            key: value
-            for key, value in payload.items()
-            if key.lower() not in SENSITIVE_KEYS
-        }
+    def _sanitize_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
+        with PiiRedactor() as redactor:
+            sanitized = self._sanitize_value(payload, redactor)
+
+        assert isinstance(sanitized, dict)
+        return sanitized
+
+    def _sanitize_value(
+        self,
+        value: Any,
+        redactor: PiiRedactor,
+    ) -> Any:
+        if isinstance(value, str):
+            return redactor.redact(value)
+        if isinstance(value, dict):
+            return {
+                key: self._sanitize_value(item, redactor)
+                for key, item in value.items()
+                if key.lower() not in SENSITIVE_KEYS
+            }
+        if isinstance(value, list | tuple):
+            return [
+                self._sanitize_value(item, redactor)
+                for item in value
+            ]
+        return value
