@@ -1,6 +1,6 @@
 import json
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from random import Random
 from time import perf_counter
@@ -53,10 +53,13 @@ class ContentPipelineCaseResult:
     violations: list[RuleViolation]
     latency_ms: int
     cost_usd: float
+    status: str = "completed"
+    attempts: int = 0
     prompt_tokens: int = 0
     completion_tokens: int = 0
     model: str | None = None
     error: str | None = None
+    trace: list[dict[str, object]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -66,6 +69,10 @@ class PipelineVersionMetrics:
     violation_count: int
     average_latency_ms: float
     total_cost_usd: float
+    success_rate: float
+    failures_by_type: dict[str, int]
+    prompt_tokens: int
+    completion_tokens: int
 
 
 @dataclass(frozen=True)
@@ -119,7 +126,33 @@ def _calculate_version_metrics(
         _unsupported_used_attribute_count(result) for result in results
     )
 
+    failures_by_type: dict[str, int] = {}
+
+    for result in results:
+        if result.status == "manual_review":
+            failures_by_type["manual_review"] = (
+                failures_by_type.get("manual_review", 0) + 1
+            )
+        elif result.status == "error":
+            error_type = (
+                result.error.split(":", maxsplit=1)[0]
+                if result.error
+                else "unknown_error"
+            )
+            failures_by_type[error_type] = (
+                failures_by_type.get(error_type, 0) + 1
+            )
+
     return PipelineVersionMetrics(
+        success_rate=sum(
+            result.status == "completed" for result in results
+        )
+        / len(results),
+        failures_by_type=failures_by_type,
+        prompt_tokens=sum(result.prompt_tokens for result in results),
+        completion_tokens=sum(
+            result.completion_tokens for result in results
+        ),
         attribute_f1=attribute_metrics.overall.f1,
         hallucination_rate=(
             unsupported_used_attribute_count / used_attribute_count
