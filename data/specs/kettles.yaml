@@ -1,0 +1,92 @@
+category: kettles
+attributes:
+  - key: capacity_l
+    label: Capacity
+    type: number
+    required: true
+    unit: l
+    synonyms: [объем, вместимость, литры]
+    affects_filter: true
+
+  - key: power_w
+    label: Power
+    type: integer
+    required: true
+    unit: W
+    synonyms: [мощность, ватт, Вт]
+    affects_filter: true
+
+  - key: body_material
+    label: Body material
+    type: enum
+    required: true
+    enum_values: [plastic, glass, stainless_steel, ceramic]
+    synonyms: [материал корпуса, корпус]
+    affects_filter: true
+
+  - key: heating_element
+    label: Heating element
+    type: enum
+    required: true
+    enum_values: [concealed, open_coil]
+    synonyms: [нагревательный элемент, скрытый нагреватель, открытая спираль]
+    affects_filter: true
+
+  - key: temperature_control
+    label: Temperature control
+    type: boolean
+    required: false
+    synonyms: [терморегулятор, регулировка температуры, выбор температуры]
+    affects_filter: true
+
+  - key: keep_warm
+    label: Keep warm
+    type: boolean
+    required: false
+    synonyms: [поддержание температуры, поддержание тепла]
+    affects_filter: true
+
+  - key: filter_type
+    label: Filter type
+    type: enum
+    required: false
+    enum_values: [scale_filter, removable_filter, none]
+    synonyms: [фильтр, фильтр от накипи]
+    affects_filter: false
+
+  - key: color
+    label: Color
+    type: enum
+    required: false
+    enum_values: [black, white, gray, silver, red, blue]
+    synonyms: [цвет, расцветка]
+    affects_filter: true
+
+  - key: cordless
+    label: Cordless
+    type: boolean
+    required: false
+    synonyms: [беспроводной, без провода]
+    affects_filter: false
+
+  - key: auto_shutdown
+    label: Auto shutdown
+    type: boolean
+    required: false
+    synonyms: [автоотключение, автоматическое отключение]
+    affects_filter: true
+
+  - key: water_level_indicator
+    label: Water level indicator
+    type: boolean
+    required: false
+    synonyms: [индикатор уровня воды, шкала воды]
+    affects_filter: false
+
+  - key: weight_kg
+    label: Weight
+    type: number
+    required: false
+    unit: kg
+    synonyms: [вес, масса]
+    affects_filter: false
