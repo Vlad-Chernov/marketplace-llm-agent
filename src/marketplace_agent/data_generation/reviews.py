@@ -11,6 +11,12 @@ DEFECT_TEXTS = {
     "wifi_disconnect": "Wi-Fi постоянно отключается.",
 }
 
+PRODUCT_NAMES = {
+    "laptops": "Ноутбук",
+    "sneakers": "Кроссовки",
+    "kettles": "Электрочайник",
+}
+
 
 def generate_reviews(
     products: list[Product],
@@ -32,21 +38,29 @@ def generate_reviews(
 
     for index in range(count):
         product = rng.choice(products)
+        product_name = PRODUCT_NAMES[product.category]
         defect_label = (
             list(DEFECT_TEXTS)[index % len(DEFECT_TEXTS)]
             if index < defect_count
             else None
         )
         is_delivery_review = (
-            index >= defect_count and (index - defect_count) % 33 == 0
+            index >= defect_count
+            and (index - defect_count) % 33 == 0
         )
         contains_personal_data = index % 20 == 0
-
         if is_delivery_review:
-            text = "Ноутбук ещё не оценил: курьер задержал доставку."
+            text = (
+                f"{product_name} ещё не оценил: "
+                "курьер задержал доставку."
+            )
             rating = 3
         elif defect_label is not None:
-            text = DEFECT_TEXTS[defect_label]
+            if product.category == "laptops":
+                text = DEFECT_TEXTS[defect_label]
+            else:
+                defect_label = "other"
+                text = f"{product_name} имеет производственный дефект."
             rating = rng.choice([1, 2])
         else:
             rating = rng.choices(
@@ -54,7 +68,7 @@ def generate_reviews(
                 weights=[20, 7, 10, 18, 55],
             )[0]
             text = (
-                "Ноутбук полностью соответствует описанию."
+                f"{product_name} полностью соответствует описанию."
                 if rating >= 4
                 else "Пользуюсь несколько дней, впечатления смешанные."
             )

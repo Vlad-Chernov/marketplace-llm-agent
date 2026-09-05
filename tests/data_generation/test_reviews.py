@@ -1,4 +1,7 @@
-from marketplace_agent.data_generation.catalog import generate_clean_products
+from marketplace_agent.data_generation.catalog import (
+    generate_clean_products,
+    generate_scaled_catalog,
+)
 from marketplace_agent.data_generation.reviews import generate_reviews
 
 
@@ -37,3 +40,15 @@ def test_generates_expected_review_profiles() -> None:
     assert 0.10 <= defect_ratio <= 0.20
     assert 0.02 <= personal_data_ratio <= 0.08
     assert 0.01 <= delivery_ratio <= 0.06
+
+def test_uses_category_name_in_scaled_catalog_reviews() -> None:
+    products = generate_scaled_catalog(seed=7)
+    reviews = generate_reviews(products, count=4_000, seed=42)
+    products_by_sku = {product.sku: product for product in products}
+
+    for review in reviews:
+        category = products_by_sku[review.sku].category
+        if category == "sneakers":
+            assert "Ноутбук" not in review.text
+        if category == "kettles":
+            assert "Ноутбук" not in review.text
