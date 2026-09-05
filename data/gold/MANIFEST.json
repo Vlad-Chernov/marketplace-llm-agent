@@ -1,7 +1,7 @@
 {
   "suite": "mvp",
-  "version": "1.0",
+  "version": "2.0",
   "seed": 42,
   "split": "frozen",
-  "target_case_count": 25
+  "target_case_count": 50
 }
