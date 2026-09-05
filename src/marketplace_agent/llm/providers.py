@@ -1,4 +1,4 @@
-import re
+from random import uniform
 from time import sleep, time
 from typing import Any
 from uuid import uuid4
@@ -7,8 +7,24 @@ import httpx
 from pydantic import BaseModel
 
 from marketplace_agent.llm.base import LLMResponse, Message
+from marketplace_agent.llm.retry import retry_delay_seconds
 
-RATE_LIMIT_DELAY_PATTERN = re.compile(r"in\s+([0-9.]+)(ms|s)")
+TRANSIENT_STATUS_CODES = frozenset(
+    {408, 429, 500, 502, 503, 504}
+)
+
+def retry_after_seconds(response: httpx.Response) -> float | None:
+    """Return a valid Retry-After value in seconds."""
+
+    value = response.headers.get("Retry-After")
+    if value is None:
+        return None
+
+    try:
+        return max(float(value), 0.0)
+    except ValueError:
+        return None
+
 class LLMProviderError(RuntimeError):
     """Represents a safe, provider-independent HTTP error."""
 
@@ -96,25 +112,24 @@ class OpenAICompatibleLLMClient:
                     transport=self.transport,
                 ) as client:
                     response = client.post(path, json=payload)
-            except httpx.HTTPError as error:
+            except httpx.TransportError as error:
                 if attempt == 2:
-                    raise LLMProviderError("LLM request failed.") from error
+                    raise LLMProviderError(
+                        "LLM request failed."
+                    ) from error
 
-                sleep(1.0)
+                sleep(retry_delay_seconds(attempt, uniform))
                 continue
 
-            if response.status_code != 429 or attempt == 2:
+            if (
+                response.status_code not in TRANSIENT_STATUS_CODES
+                or attempt == 2
+            ):
                 break
 
-            error_message = response.json().get("error", {}).get("message", "")
-            delay_match = RATE_LIMIT_DELAY_PATTERN.search(error_message)
-            if delay_match is None:
-                sleep(1.0)
-                continue
-
-            value, unit = delay_match.groups()
-            delay_seconds = float(value) / 1000 if unit == "ms" else float(value)
-            sleep(max(delay_seconds, 0.1))
+            jitter_delay = retry_delay_seconds(attempt, uniform)
+            retry_after = retry_after_seconds(response)
+            sleep(max(jitter_delay, retry_after or 0.0))
 
         assert response is not None
 
@@ -167,26 +182,50 @@ class GigaChatLLMClient(OpenAICompatibleLLMClient):
         if self._access_token and time() < self._token_expires_at:
             return self._access_token
 
-        try:
-            with httpx.Client(
-                base_url="https://ngw.devices.sberbank.ru:9443",
-                headers={
-                    "Authorization": f"Basic {self.authorization_key}",
-                    "RqUID": str(uuid4()),
-                },
-                timeout=30.0,
-                transport=self.transport,
-            ) as client:
-                response = client.post(
-                    "/api/v2/oauth",
-                    data={"scope": "GIGACHAT_API_PERS"},
-                )
-        except httpx.HTTPError as error:
-            raise LLMProviderError("GigaChat authorization failed.") from error
+        response: httpx.Response | None = None
+
+        for attempt in range(3):
+            try:
+                with httpx.Client(
+                    base_url="https://ngw.devices.sberbank.ru:9443",
+                    headers={
+                        "Authorization": (
+                            f"Basic {self.authorization_key}"
+                        ),
+                        "RqUID": str(uuid4()),
+                    },
+                    timeout=30.0,
+                    transport=self.transport,
+                ) as client:
+                    response = client.post(
+                        "/api/v2/oauth",
+                        data={"scope": "GIGACHAT_API_PERS"},
+                    )
+            except httpx.TransportError as error:
+                if attempt == 2:
+                    raise LLMProviderError(
+                        "GigaChat authorization failed."
+                    ) from error
+
+                sleep(retry_delay_seconds(attempt, uniform))
+                continue
+
+            if (
+                response.status_code not in TRANSIENT_STATUS_CODES
+                or attempt == 2
+            ):
+                break
+
+            jitter_delay = retry_delay_seconds(attempt, uniform)
+            retry_after = retry_after_seconds(response)
+            sleep(max(jitter_delay, retry_after or 0.0))
+
+        assert response is not None
 
         if response.status_code >= 400:
             raise LLMProviderError(
-                f"GigaChat authorization returned HTTP {response.status_code}."
+                "GigaChat authorization returned HTTP "
+                f"{response.status_code}."
             )
 
         payload = response.json()
