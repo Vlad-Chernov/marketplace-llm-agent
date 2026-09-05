@@ -1,8 +1,10 @@
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
+from hashlib import sha256
 from time import monotonic
 
+from marketplace_agent.batch.checkpoints import BatchCheckpointStore
 from marketplace_agent.batch.limiter import (
     RateLimitedLLMClient,
     RateLimiter,
@@ -39,6 +41,7 @@ class BatchProcessor:
         max_workers: int = 2,
         requests_per_minute: int = 30,
         pipeline: Pipeline = run_content_pipeline,
+        checkpoint_store: BatchCheckpointStore | None = None,
     ) -> None:
         if max_workers < 1:
             raise ValueError("max_workers must be at least 1.")
@@ -52,6 +55,7 @@ class BatchProcessor:
         self._max_workers = max_workers
         self._requests_per_minute = requests_per_minute
         self._pipeline = pipeline
+        self._checkpoint_store = checkpoint_store
 
     def run(
         self,
@@ -60,7 +64,17 @@ class BatchProcessor:
     ) -> BatchSummary:
         """Run the content pipeline once for every requested SKU."""
 
-        del resume
+        run_id = sha256(
+            "\n".join(product_ids).encode("utf-8")
+        ).hexdigest()
+        successes = (
+            self._checkpoint_store.load_successes(run_id)
+            if resume and self._checkpoint_store is not None
+            else {}
+        )
+        pending_skus = [
+            sku for sku in product_ids if sku not in successes
+        ]
 
         if not product_ids:
             raise ValueError("product_ids must not be empty.")
@@ -70,23 +84,28 @@ class BatchProcessor:
         started_at = monotonic()
         limiter = RateLimiter(self._requests_per_minute)
         futures: dict[str, Future[PipelineResult]] = {}
+        results = successes.copy()
 
         with ThreadPoolExecutor(
             max_workers=self._max_workers
         ) as executor:
-            for sku in product_ids:
+            for sku in pending_skus:
                 futures[sku] = executor.submit(
                     self._process_product,
                     sku,
                     limiter,
                 )
 
-        results: dict[str, PipelineResult] = {}
         errors: dict[str, str] = {}
 
-        for sku in product_ids:
+        for sku in pending_skus:
             try:
                 results[sku] = futures[sku].result()
+                if self._checkpoint_store is not None:
+                    self._checkpoint_store.save_success(
+                        run_id,
+                        results[sku],
+                    )
             except Exception as error:  # noqa: BLE001
                 errors[sku] = str(error) or type(error).__name__
 

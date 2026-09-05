@@ -3,6 +3,7 @@ from threading import Event, Lock, Thread
 
 import pytest
 
+from marketplace_agent.batch.checkpoints import BatchCheckpointStore
 from marketplace_agent.batch.processor import (
     BatchProcessor,
     BatchSummary,
@@ -157,3 +158,44 @@ def test_batch_records_unknown_sku_and_processes_known_one() -> None:
     assert summary.errors == {
         "MISSING-001": "Product not found.",
     }
+
+def test_batch_resume_skips_previously_successful_sku(
+    tmp_path,
+) -> None:
+    checkpoint_store = BatchCheckpointStore(
+        tmp_path / "batch-checkpoints.db"
+    )
+    products = FakeProducts(
+        {
+            "LAP-002": make_product("LAP-002"),
+        }
+    )
+
+    first_processor = BatchProcessor(
+        products=products,
+        llm_factory=FakeLLMClient,
+        checkpoint_store=checkpoint_store,
+        pipeline=process_product,
+    )
+    first_processor.run(["LAP-002"])
+
+    calls: list[str] = []
+
+    def must_not_run(
+        product: Product,
+        _: FakeLLMClient,
+    ) -> PipelineResult:
+        calls.append(product.sku)
+        raise AssertionError("successful SKU must be skipped")
+
+    resumed_processor = BatchProcessor(
+        products=products,
+        llm_factory=FakeLLMClient,
+        checkpoint_store=checkpoint_store,
+        pipeline=must_not_run,
+    )
+
+    summary = resumed_processor.run(["LAP-002"], resume=True)
+
+    assert list(summary.results) == ["LAP-002"]
+    assert calls == []
