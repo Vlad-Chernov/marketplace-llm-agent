@@ -6,7 +6,8 @@
 **Goal:** Сравнить прежний линейный content pipeline и LangGraph-граф на
 одинаковом наборе из 12 товаров с реальным LLM.
 
-**Architecture:** Прежний цикл хранится только в `evals/legacy_content_pipeline.py`.
+**Architecture:** Прежний цикл хранится только в
+`src/marketplace_agent/evals/legacy_content_pipeline.py`.
 Общий evaluation-исполнитель запускает обе реализации, измеряет метрики и
 сохраняет технический trace по каждому SKU. Production-конвейер не меняется.
 
@@ -168,7 +169,7 @@ git commit -m "feat: measure content pipeline outcomes"
 
 **Files:**
 
-- Create: `evals/legacy_content_pipeline.py`
+- Create: `src/marketplace_agent/evals/legacy_content_pipeline.py`
 - Create: `tests/evals/test_legacy_content_pipeline.py`
 
 **Interfaces:**
@@ -188,7 +189,9 @@ def run_legacy_content_pipeline(
 `tests/content/test_pipeline.py`, но импортируй:
 
 ```python
-from evals.legacy_content_pipeline import run_legacy_content_pipeline
+from marketplace_agent.evals.legacy_content_pipeline import (
+    run_legacy_content_pipeline,
+)
 ```
 
 Проверь:
@@ -211,7 +214,8 @@ UV_CACHE_DIR=/private/tmp/marketplace-agent-uv-cache uv run pytest \
 
 - [ ] **Step 3: Создай legacy implementation**
 
-В `evals/legacy_content_pipeline.py` перенеси реализацию из:
+В `src/marketplace_agent/evals/legacy_content_pipeline.py` перенеси
+реализацию из:
 
 ```bash
 git show d50decb^:src/marketplace_agent/content/pipeline.py
@@ -252,7 +256,7 @@ UV_CACHE_DIR=/private/tmp/marketplace-agent-uv-cache uv run pytest \
 - [ ] **Step 6: Commit**
 
 ```bash
-git add evals/legacy_content_pipeline.py \
+git add src/marketplace_agent/evals/legacy_content_pipeline.py \
   tests/evals/test_legacy_content_pipeline.py
 git commit -m "feat: preserve legacy pipeline for evaluation"
 ```

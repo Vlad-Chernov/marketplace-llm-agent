@@ -25,7 +25,7 @@ success rate, качество атрибутов, latency, токены, сто
 
 ## Компоненты
 
-### `evals/legacy_content_pipeline.py`
+### `src/marketplace_agent/evals/legacy_content_pipeline.py`
 
 Хранит прежнюю линейную реализацию:
 
