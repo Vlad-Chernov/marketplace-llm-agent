@@ -1,7 +1,14 @@
 import json
+from collections.abc import Sequence
 from pathlib import Path
 
-from marketplace_agent.catalog.extractor import AttributeExtractionResult
+from marketplace_agent.catalog.extractor import (
+    AttributeExtractionResult,
+)
+from marketplace_agent.content.examples import (
+    ContentExample,
+    select_similar_examples,
+)
 from marketplace_agent.domain.models import GeneratedContent, Product
 from marketplace_agent.llm.base import LLMClient, Message
 from marketplace_agent.llm.structured import chat_structured
@@ -11,14 +18,20 @@ def generate_content(
     product: Product,
     extracted_attributes: AttributeExtractionResult,
     client: LLMClient,
+    examples: Sequence[ContentExample] = (),
 ) -> GeneratedContent:
-    """Generate a product card using only confirmed extracted attributes."""
+    """Generate content using only confirmed target attributes."""
 
     confirmed_attributes = {
         key: attribute.value
         for key, attribute in extracted_attributes.attributes.items()
         if attribute.value is not None
     }
+    selected_examples = select_similar_examples(
+        category=product.category,
+        confirmed_attributes=confirmed_attributes,
+        examples=examples,
+    )
     prompt_path = Path(__file__).parent / "prompts" / "generate_content.md"
     prompt = prompt_path.read_text(encoding="utf-8").format(
         product=json.dumps(
@@ -29,7 +42,23 @@ def generate_content(
             },
             ensure_ascii=False,
         ),
-        attributes=json.dumps(confirmed_attributes, ensure_ascii=False),
+        attributes=json.dumps(
+            confirmed_attributes,
+            ensure_ascii=False,
+        ),
+        examples=json.dumps(
+            [
+                {
+                    "example_id": example.example_id,
+                    "confirmed_attributes": (
+                        example.confirmed_attributes
+                    ),
+                    "content": example.content.model_dump(),
+                }
+                for example in selected_examples
+            ],
+            ensure_ascii=False,
+        ),
     )
 
     return chat_structured(
