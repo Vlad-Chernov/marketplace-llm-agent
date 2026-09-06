@@ -1,0 +1,226 @@
+[
+  {
+    "example_id": "EXAMPLE-001",
+    "category": "laptop",
+    "confirmed_attributes": {
+      "ram_gb": "8",
+      "storage_gb": "256",
+      "screen_diagonal_in": 14.0,
+      "color": "silver"
+    },
+    "content": {
+      "title": "Ноутбук 14 дюймов для работы",
+      "bullets": [
+        "Экран 14 дюймов",
+        "8 GB RAM",
+        "SSD 256 GB"
+      ],
+      "description": "Компактный ноутбук для учёбы, работы и повседневных задач.",
+      "keywords": [
+        "ноутбук",
+        "14 дюймов"
+      ],
+      "used_attributes": {
+        "ram_gb": "8",
+        "storage_gb": "256",
+        "screen_diagonal_in": 14.0
+      }
+    }
+  },
+  {
+    "example_id": "EXAMPLE-002",
+    "category": "laptop",
+    "confirmed_attributes": {
+      "ram_gb": "8",
+      "storage_gb": "512",
+      "processor": "Intel Core i5",
+      "color": "black"
+    },
+    "content": {
+      "title": "Ноутбук с Intel Core i5 и SSD 512 GB",
+      "bullets": [
+        "Процессор Intel Core i5",
+        "8 GB RAM",
+        "SSD 512 GB"
+      ],
+      "description": "Ноутбук с процессором Intel Core i5 для рабочих и домашних задач.",
+      "keywords": [
+        "Intel Core i5",
+        "SSD 512 GB"
+      ],
+      "used_attributes": {
+        "ram_gb": "8",
+        "storage_gb": "512",
+        "processor": "Intel Core i5"
+      }
+    }
+  },
+  {
+    "example_id": "EXAMPLE-003",
+    "category": "laptop",
+    "confirmed_attributes": {
+      "ram_gb": "16",
+      "storage_gb": "512",
+      "screen_diagonal_in": 15.6,
+      "color": "gray"
+    },
+    "content": {
+      "title": "Ноутбук 15,6 дюйма с 16 GB RAM",
+      "bullets": [
+        "Экран 15,6 дюйма",
+        "16 GB RAM",
+        "SSD 512 GB"
+      ],
+      "description": "Ноутбук с большим экраном и 16 GB оперативной памяти.",
+      "keywords": [
+        "ноутбук 15,6",
+        "16 GB RAM"
+      ],
+      "used_attributes": {
+        "ram_gb": "16",
+        "storage_gb": "512",
+        "screen_diagonal_in": 15.6
+      }
+    }
+  },
+  {
+    "example_id": "EXAMPLE-004",
+    "category": "laptop",
+    "confirmed_attributes": {
+      "ram_gb": "16",
+      "storage_gb": "1024",
+      "processor": "AMD Ryzen 7",
+      "color": "black"
+    },
+    "content": {
+      "title": "Ноутбук с AMD Ryzen 7 и SSD 1 TB",
+      "bullets": [
+        "Процессор AMD Ryzen 7",
+        "16 GB RAM",
+        "SSD 1 TB"
+      ],
+      "description": "Производительный ноутбук с AMD Ryzen 7 и вместительным SSD.",
+      "keywords": [
+        "AMD Ryzen 7",
+        "SSD 1 TB"
+      ],
+      "used_attributes": {
+        "ram_gb": "16",
+        "storage_gb": "1024",
+        "processor": "AMD Ryzen 7"
+      }
+    }
+  },
+  {
+    "example_id": "EXAMPLE-005",
+    "category": "laptop",
+    "confirmed_attributes": {
+      "ram_gb": "32",
+      "storage_gb": "512",
+      "operating_system": "Windows 11",
+      "color": "silver"
+    },
+    "content": {
+      "title": "Ноутбук с 32 GB RAM и Windows 11",
+      "bullets": [
+        "32 GB RAM",
+        "SSD 512 GB",
+        "Windows 11"
+      ],
+      "description": "Ноутбук с 32 GB оперативной памяти и Windows 11.",
+      "keywords": [
+        "32 GB RAM",
+        "Windows 11"
+      ],
+      "used_attributes": {
+        "ram_gb": "32",
+        "storage_gb": "512",
+        "operating_system": "Windows 11"
+      }
+    }
+  },
+  {
+    "example_id": "EXAMPLE-006",
+    "category": "laptop",
+    "confirmed_attributes": {
+      "ram_gb": "32",
+      "storage_gb": "1024",
+      "screen_diagonal_in": 16.0,
+      "color": "gray"
+    },
+    "content": {
+      "title": "Ноутбук 16 дюймов с SSD 1 TB",
+      "bullets": [
+        "Экран 16 дюймов",
+        "32 GB RAM",
+        "SSD 1 TB"
+      ],
+      "description": "Ноутбук с экраном 16 дюймов, 32 GB RAM и SSD 1 TB.",
+      "keywords": [
+        "ноутбук 16",
+        "SSD 1 TB"
+      ],
+      "used_attributes": {
+        "ram_gb": "32",
+        "storage_gb": "1024",
+        "screen_diagonal_in": 16.0
+      }
+    }
+  },
+  {
+    "example_id": "EXAMPLE-007",
+    "category": "laptop",
+    "confirmed_attributes": {
+      "ram_gb": "16",
+      "storage_gb": "256",
+      "processor": "Intel Core i3",
+      "color": "blue"
+    },
+    "content": {
+      "title": "Ноутбук с Intel Core i3 для учёбы",
+      "bullets": [
+        "Процессор Intel Core i3",
+        "16 GB RAM",
+        "SSD 256 GB"
+      ],
+      "description": "Ноутбук с Intel Core i3 для учёбы и повседневной работы.",
+      "keywords": [
+        "Intel Core i3",
+        "ноутбук для учёбы"
+      ],
+      "used_attributes": {
+        "ram_gb": "16",
+        "storage_gb": "256",
+        "processor": "Intel Core i3"
+      }
+    }
+  },
+  {
+    "example_id": "EXAMPLE-008",
+    "category": "laptop",
+    "confirmed_attributes": {
+      "ram_gb": "8",
+      "storage_gb": "1024",
+      "operating_system": "No OS",
+      "color": "white"
+    },
+    "content": {
+      "title": "Ноутбук с SSD 1 TB без ОС",
+      "bullets": [
+        "8 GB RAM",
+        "SSD 1 TB",
+        "Без операционной системы"
+      ],
+      "description": "Ноутбук с SSD 1 TB и предустановленной конфигурацией без ОС.",
+      "keywords": [
+        "SSD 1 TB",
+        "ноутбук без ОС"
+      ],
+      "used_attributes": {
+        "ram_gb": "8",
+        "storage_gb": "1024",
+        "operating_system": "No OS"
+      }
+    }
+  }
+]
