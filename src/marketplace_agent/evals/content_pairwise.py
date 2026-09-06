@@ -1,14 +1,20 @@
 """Blind pair construction for content-pipeline evaluation."""
 
 import hashlib
-from collections.abc import Mapping, Sequence
+import json
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Literal, cast
+
+from pydantic import BaseModel, ConfigDict, Field
 
 from marketplace_agent.domain.models import GeneratedContent
 from marketplace_agent.evals.content_pipeline import (
     ContentPipelineCaseResult,
 )
+from marketplace_agent.llm.base import LLMClient, Message
+from marketplace_agent.llm.structured import chat_structured
 
 Choice = Literal["A", "B", "tie"]
 
@@ -32,6 +38,33 @@ class HumanPairChoice:
 
     pair_id: str
     choice: Choice
+
+
+class PairJudgeDecision(BaseModel):
+    """Structured blind decision returned by the LLM judge."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    choice: Choice
+    reason: str = Field(min_length=1, max_length=300)
+
+
+@dataclass(frozen=True)
+class JudgedPair:
+    """A safe judge outcome for one pair."""
+
+    pair_id: str
+    choice: Choice | None
+    error_type: str | None = None
+
+
+@dataclass(frozen=True)
+class PairwiseAgreement:
+    """Agreement between human and LLM blind decisions."""
+
+    exact_agreement: float
+    cohens_kappa: float
+    comparable_pair_count: int
 
 
 def build_blind_pairs(
@@ -132,6 +165,89 @@ def parse_human_choices(
     return parsed_choices
 
 
+def judge_blind_pairs(
+    pairs: Sequence[BlindContentPair],
+    llm_factory: Callable[[], LLMClient],
+    progress: Callable[[dict[str, object]], None] | None = None,
+) -> list[JudgedPair]:
+    """Judge each blind pair independently with a fresh LLM client."""
+
+    prompt_template = (
+        Path(__file__).parent / "prompts" / "judge_content_pair.md"
+    ).read_text(encoding="utf-8")
+    decisions: list[JudgedPair] = []
+
+    for position, pair in enumerate(pairs, start=1):
+        event = {"pair_id": pair.pair_id, "position": position, "total": len(pairs)}
+        if progress is not None:
+            progress({"event_type": "judge_started", **event})
+        prompt = prompt_template.format(
+            confirmed_attributes=json.dumps(
+                dict(pair.confirmed_attributes), ensure_ascii=False
+            ),
+            card_a=json.dumps(_serialize_visible_card(pair.card_a), ensure_ascii=False),
+            card_b=json.dumps(_serialize_visible_card(pair.card_b), ensure_ascii=False),
+        )
+        try:
+            decision = chat_structured(
+                client=llm_factory(),
+                messages=[Message(role="user", content=prompt)],
+                response_schema=PairJudgeDecision,
+                max_retries=1,
+            )
+        except Exception as error:  # noqa: BLE001
+            decisions.append(
+                JudgedPair(
+                    pair_id=pair.pair_id,
+                    choice=None,
+                    error_type=type(error).__name__,
+                )
+            )
+            if progress is not None:
+                progress({"event_type": "judge_error", **event})
+            continue
+
+        decisions.append(JudgedPair(pair_id=pair.pair_id, choice=decision.choice))
+        if progress is not None:
+            progress({"event_type": "judge_completed", **event})
+
+    return decisions
+
+
+def evaluate_pairwise_agreement(
+    human_choices: Sequence[HumanPairChoice],
+    judged_pairs: Sequence[JudgedPair],
+) -> PairwiseAgreement:
+    """Calculate exact agreement and Cohen's kappa for valid judge answers."""
+
+    human_by_id = _choices_by_id(human_choices)
+    judged_by_id = _judged_by_id(judged_pairs)
+    if set(human_by_id) != set(judged_by_id):
+        raise ValueError("Human and judge choices must use the same pair IDs.")
+
+    comparable = [
+        (human_by_id[pair_id], judged.choice)
+        for pair_id, judged in judged_by_id.items()
+        if judged.choice is not None
+    ]
+    if not comparable:
+        return PairwiseAgreement(0.0, 0.0, 0)
+
+    count = len(comparable)
+    exact_matches = sum(human == judge for human, judge in comparable)
+    labels: tuple[Choice, ...] = ("A", "B", "tie")
+    human_counts = {label: sum(human == label for human, _ in comparable) for label in labels}
+    judge_counts = {label: sum(judge == label for _, judge in comparable) for label in labels}
+    observed = exact_matches / count
+    expected = sum(
+        human_counts[label] / count * judge_counts[label] / count
+        for label in labels
+    )
+    kappa = 1.0 if observed == expected == 1.0 else (observed - expected) / (1.0 - expected)
+
+    return PairwiseAgreement(observed, kappa, count)
+
+
 def _has_completed_content(result: ContentPipelineCaseResult) -> bool:
     return result.status == "completed" and result.content is not None
 
@@ -148,3 +264,21 @@ def _serialize_visible_card(content: GeneratedContent) -> dict[str, object]:
         "description": content.description,
         "keywords": content.keywords,
     }
+
+
+def _choices_by_id(
+    choices: Sequence[HumanPairChoice],
+) -> dict[str, Choice]:
+    result = {choice.pair_id: choice.choice for choice in choices}
+    if len(result) != len(choices):
+        raise ValueError("Human choices must not repeat pair IDs.")
+    return result
+
+
+def _judged_by_id(
+    decisions: Sequence[JudgedPair],
+) -> dict[str, JudgedPair]:
+    result = {decision.pair_id: decision for decision in decisions}
+    if len(result) != len(decisions):
+        raise ValueError("Judge choices must not repeat pair IDs.")
+    return result

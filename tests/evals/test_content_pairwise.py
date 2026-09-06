@@ -2,13 +2,41 @@ import pytest
 
 from marketplace_agent.domain.models import GeneratedContent
 from marketplace_agent.evals.content_pairwise import (
+    HumanPairChoice,
+    JudgedPair,
     build_blind_pairs,
+    evaluate_pairwise_agreement,
+    judge_blind_pairs,
     parse_human_choices,
     serialize_blind_ballot,
 )
 from marketplace_agent.evals.content_pipeline import (
     ContentPipelineCaseResult,
 )
+from marketplace_agent.llm.base import FakeLLMClient, LLMResponse, Message
+
+
+class RecordingFakeLLMClient(FakeLLMClient):
+    def __init__(self, chat_responses: list[LLMResponse]) -> None:
+        super().__init__(chat_responses=chat_responses)
+        self.last_messages: list[Message] = []
+
+    def chat(
+        self,
+        messages: list[Message],
+        tools: list[dict[str, object]] | None,
+        response_schema: type[object] | None,
+        temperature: float,
+        max_tokens: int,
+    ) -> LLMResponse:
+        self.last_messages = messages
+        return super().chat(
+            messages,
+            tools,
+            response_schema,
+            temperature,
+            max_tokens,
+        )
 
 
 def make_content(version: str, sku: str) -> GeneratedContent:
@@ -100,3 +128,55 @@ def test_rejects_when_not_enough_completed_pairs() -> None:
             run_id="fixed-run",
             required_pair_count=3,
         )
+
+
+def test_judges_each_pair_with_new_client_and_blind_prompt() -> None:
+    pairs = build_blind_pairs(
+        make_results("legacy"),
+        make_results("graph"),
+        run_id="fixed-run",
+        required_pair_count=2,
+    )
+    clients: list[RecordingFakeLLMClient] = []
+
+    def factory() -> RecordingFakeLLMClient:
+        client = RecordingFakeLLMClient(
+            [
+                LLMResponse(
+                    content='{"choice":"A","reason":"Точнее."}',
+                    model="fake-model",
+                    prompt_tokens=1,
+                    completion_tokens=1,
+                )
+            ]
+        )
+        clients.append(client)
+        return client
+
+    decisions = judge_blind_pairs(pairs, factory)
+
+    assert len(clients) == 2
+    assert [item.choice for item in decisions] == ["A", "A"]
+    assert "a_version" not in clients[0].last_messages[0].content
+    assert "b_version" not in clients[0].last_messages[0].content
+
+
+def test_calculates_exact_agreement_and_kappa() -> None:
+    metrics = evaluate_pairwise_agreement(
+        [
+            HumanPairChoice("PAIR-001", "A"),
+            HumanPairChoice("PAIR-002", "A"),
+            HumanPairChoice("PAIR-003", "B"),
+            HumanPairChoice("PAIR-004", "B"),
+        ],
+        [
+            JudgedPair("PAIR-001", "A"),
+            JudgedPair("PAIR-002", "B"),
+            JudgedPair("PAIR-003", "A"),
+            JudgedPair("PAIR-004", "B"),
+        ],
+    )
+
+    assert metrics.comparable_pair_count == 4
+    assert metrics.exact_agreement == pytest.approx(0.5)
+    assert metrics.cohens_kappa == pytest.approx(0.0)
