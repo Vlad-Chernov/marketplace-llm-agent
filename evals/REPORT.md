@@ -144,3 +144,22 @@ Mean absolute frequency error: 0.000
 Все маршруты MVP прошли golden-набор без технических ошибок на GigaChat. Подтверждены корректные извлечение числовых атрибутов, semantic validation, безопасная обработка персональных данных и вызовы support-инструментов.
 
 Стоимость указана как 0.000000 USD, потому что цены в `.env` не заданы. Значения токенов и latency учитывают кэш.
+## Content pipeline comparison: 4c07a2b4fca34ec19adf523e47d5b91f
+
+| Version | Success rate | Attribute F1 | Violations | Average latency, ms | Tokens | Cost, USD | Errors |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| legacy-linear-v1 | 0.833 | 0.914 | 1 | 99998 | 53869 | 0.000000 | LLMProviderError=1, manual_review=1 |
+| langgraph-v1 | 0.917 | 0.972 | 1 | 127810 | 48484 | 0.000000 | manual_review=1 |
+
+Исправленные SKU: LAP-0010.
+Ухудшившиеся SKU: нет.
+
+## Content pipeline comparison: f7dea6c0f7124febb1dfdeea4da56ac3
+
+| Version | Success rate | Attribute F1 | Violations | Average latency, ms | Tokens | Cost, USD | Errors |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| legacy-linear-v1 | 0.750 | 0.859 | 1 | 105535 | 57312 | 0.000000 | LLMProviderError=2, manual_review=1 |
+| langgraph-v1 | 0.750 | 0.877 | 1 | 123419 | 58608 | 0.000000 | LLMProviderError=2, manual_review=1 |
+
+Исправленные SKU: LAP-0005, LAP-0007, LAP-0010.
+Ухудшившиеся SKU: LAP-0003, LAP-0008, LAP-0011.
