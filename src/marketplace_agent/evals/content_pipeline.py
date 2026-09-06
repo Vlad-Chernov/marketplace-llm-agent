@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from marketplace_agent.data_generation.catalog import generate_clean_products
 from marketplace_agent.data_generation.noise import noise_product
 from marketplace_agent.domain.models import (
+    GeneratedContent,
     PipelineResult,
     Product,
     RuleViolation,
@@ -66,6 +67,7 @@ class ContentPipelineCaseResult:
     error: str | None = None
     trace: list[dict[str, object]] = field(default_factory=list)
     selected_example_ids: list[str] = field(default_factory=list)
+    content: GeneratedContent | None = None
 
 
 @dataclass(frozen=True)
@@ -378,6 +380,7 @@ def run_pipeline_version(
                 model=metered_llm.model,
                 trace=trace,
                 selected_example_ids=pipeline_result.selected_example_ids,
+                content=pipeline_result.content,
             )
         )
         if progress is not None:

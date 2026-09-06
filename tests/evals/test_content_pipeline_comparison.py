@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from marketplace_agent.domain.models import (
+    GeneratedContent,
     PipelineResult,
     Product,
     RuleViolation,
@@ -180,6 +181,32 @@ def test_runs_each_sku_with_a_new_client_and_trace() -> None:
         "completed",
     ]
     assert results[0].trace[-1]["event_type"] == "completed"
+
+
+def test_keeps_completed_generated_content() -> None:
+    generated = GeneratedContent(
+        title="Ноутбук Lenovo",
+        bullets=["16 ГБ RAM"],
+        description="Описание.",
+        keywords=["ноутбук"],
+        used_attributes={"ram_gb": "16"},
+    )
+
+    results = run_pipeline_version(
+        products=[make_product("LAP-0001")],
+        llm_factory=FakeLLMClient,
+        pipeline=lambda product, _llm, _limit: PipelineResult(
+            sku=product.sku,
+            content=generated,
+            attempts=1,
+            status="completed",
+        ),
+        max_attempts=3,
+        input_price_per_million=0.0,
+        output_price_per_million=0.0,
+    )
+
+    assert results[0].content == generated
 
 
 def test_reports_progress_for_each_pipeline_outcome() -> None:
