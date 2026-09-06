@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Any, Literal, TypedDict
 
 from langgraph.graph import END, START, StateGraph
@@ -5,6 +6,7 @@ from langgraph.graph import END, START, StateGraph
 from marketplace_agent.catalog.extractor import (
     AttributeExtractionResult,
 )
+from marketplace_agent.content.examples import ContentExample
 from marketplace_agent.content.generator import generate_content
 from marketplace_agent.content.repair import repair_content
 from marketplace_agent.domain.models import (
@@ -39,11 +41,15 @@ class ContentGraphState(TypedDict, total=False):
     result: PipelineResult
 
 
-def build_content_graph(llm: LLMClient):
+def build_content_graph(
+    llm: LLMClient,
+    *,
+    examples: Sequence[ContentExample] = (),
+):
     """Build the generate-validate-repair graph."""
 
     graph = StateGraph(ContentGraphState)
-    graph.add_node("generate", _generate(llm))
+    graph.add_node("generate", _generate(llm, examples))
     graph.add_node("validate", _validate(llm))
     graph.add_node("remember", _remember)
     graph.add_node("repair", _repair(llm))
@@ -69,7 +75,10 @@ def build_content_graph(llm: LLMClient):
     return graph.compile()
 
 
-def _generate(llm: LLMClient):
+def _generate(
+    llm: LLMClient,
+    examples: Sequence[ContentExample],
+):
     def generate(
         state: ContentGraphState,
     ) -> dict[str, object]:
@@ -78,6 +87,7 @@ def _generate(llm: LLMClient):
                 state["product"],
                 state["extracted_attributes"],
                 llm,
+                examples=examples,
             ),
             "attempts": state["attempts"] + 1,
         }

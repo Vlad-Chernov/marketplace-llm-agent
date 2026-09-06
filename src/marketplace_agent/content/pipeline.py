@@ -1,9 +1,11 @@
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 from marketplace_agent.catalog.extractor import extract_attributes
+from marketplace_agent.content.examples import ContentExample
 from marketplace_agent.content.graph import build_content_graph
 from marketplace_agent.data_generation.specs import load_attribute_specs
 from marketplace_agent.domain.models import (
@@ -18,6 +20,7 @@ def run_content_pipeline(
     product: Product,
     llm: LLMClient,
     max_attempts: int = 3,
+    examples: Sequence[ContentExample] = (),
 ) -> PipelineResult:
     """Prepare one product and delegate its cycle to LangGraph."""
 
@@ -43,7 +46,10 @@ def run_content_pipeline(
         supplier_description=product.supplier_description,
     )
 
-    graph = build_content_graph(llm)
+    graph = build_content_graph(
+        llm,
+        examples=examples,
+    )
     result = graph.invoke(
         {
             "product": product,
