@@ -62,6 +62,7 @@ def run_content_pipeline(
             "attempts": 0,
             "max_attempts": max_attempts,
             "seen_contents": set(),
+            "selected_example_ids": [],
         }
     )
 

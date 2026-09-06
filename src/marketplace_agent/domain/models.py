@@ -84,6 +84,7 @@ class PipelineResult(BaseModel):
     sku: str
     content: GeneratedContent | None = None
     violations: list[RuleViolation] = Field(default_factory=list)
+    selected_example_ids: list[str] = Field(default_factory=list)
     attempts: int = Field(ge=0)
     status: PipelineStatus
 

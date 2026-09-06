@@ -65,6 +65,7 @@ class ContentPipelineCaseResult:
     model: str | None = None
     error: str | None = None
     trace: list[dict[str, object]] = field(default_factory=list)
+    selected_example_ids: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -355,6 +356,9 @@ def run_pipeline_version(
                 "violation_rule_ids": [
                     violation.rule_id for violation in pipeline_result.violations
                 ],
+                "selected_example_ids": (
+                    pipeline_result.selected_example_ids
+                ),
             }
         )
 
@@ -373,6 +377,7 @@ def run_pipeline_version(
                 completion_tokens=metered_llm.completion_tokens,
                 model=metered_llm.model,
                 trace=trace,
+                selected_example_ids=pipeline_result.selected_example_ids,
             )
         )
         if progress is not None:

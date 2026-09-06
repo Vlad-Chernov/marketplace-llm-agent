@@ -4,15 +4,19 @@ from decimal import Decimal
 
 from marketplace_agent.catalog.extractor import (
     AttributeExtractionResult,
+    ExtractedAttribute,
 )
+from marketplace_agent.content import graph as content_graph
 from marketplace_agent.content import pipeline
 from marketplace_agent.content.examples import ContentExample
+from marketplace_agent.content.graph import build_content_graph
 from marketplace_agent.domain.models import (
     GeneratedContent,
     PipelineResult,
     Product,
 )
 from marketplace_agent.llm.base import FakeLLMClient
+from marketplace_agent.validation.grounding import GroundingEvidence
 
 
 def make_product() -> Product:
@@ -142,3 +146,51 @@ def test_pipeline_passes_examples_to_content_graph(
 
     assert result == expected
     assert received_examples == [example]
+
+def test_graph_records_selected_example_ids(
+    monkeypatch,
+) -> None:
+    example = make_example()
+    extracted_attributes = AttributeExtractionResult(
+        attributes={
+            "ram_gb": ExtractedAttribute(
+                value="16",
+                confidence=0.95,
+            )
+        },
+        unsupported_facts=[],
+    )
+
+    monkeypatch.setattr(
+        content_graph,
+        "generate_content",
+        lambda *_args, **_kwargs: example.content,
+    )
+    monkeypatch.setattr(
+        content_graph,
+        "_validate_content",
+        lambda *_args: [],
+    )
+
+    graph = build_content_graph(
+        FakeLLMClient(),
+        examples=[example],
+    )
+    result = graph.invoke(
+        {
+            "product": make_product(),
+            "extracted_attributes": extracted_attributes,
+            "evidence": GroundingEvidence(
+                confirmed_attributes={"ram_gb": "16"},
+                supplier_description=make_product().supplier_description,
+            ),
+            "deterministic_rules": [],
+            "semantic_rules": [],
+            "violations": [],
+            "attempts": 0,
+            "max_attempts": 3,
+            "seen_contents": set(),
+        }
+    )
+
+    assert result["result"].selected_example_ids == ["EXAMPLE-001"]

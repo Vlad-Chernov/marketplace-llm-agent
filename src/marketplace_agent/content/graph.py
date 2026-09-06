@@ -6,7 +6,10 @@ from langgraph.graph import END, START, StateGraph
 from marketplace_agent.catalog.extractor import (
     AttributeExtractionResult,
 )
-from marketplace_agent.content.examples import ContentExample
+from marketplace_agent.content.examples import (
+    ContentExample,
+    select_similar_examples,
+)
 from marketplace_agent.content.generator import generate_content
 from marketplace_agent.content.repair import repair_content
 from marketplace_agent.domain.models import (
@@ -28,6 +31,7 @@ from marketplace_agent.validation.semantic import validate_semantic
 
 
 class ContentGraphState(TypedDict, total=False):
+    selected_example_ids: list[str]
     product: Product
     extracted_attributes: AttributeExtractionResult
     evidence: GroundingEvidence
@@ -82,14 +86,31 @@ def _generate(
     def generate(
         state: ContentGraphState,
     ) -> dict[str, object]:
+        confirmed_attributes = {
+            key: attribute.value
+            for key, attribute in state[
+                "extracted_attributes"
+            ].attributes.items()
+            if attribute.value is not None
+        }
+        selected_examples = select_similar_examples(
+            category=state["product"].category,
+            confirmed_attributes=confirmed_attributes,
+            examples=examples,
+        )
+
         return {
             "content": generate_content(
                 state["product"],
                 state["extracted_attributes"],
                 llm,
-                examples=examples,
+                examples=selected_examples,
             ),
             "attempts": state["attempts"] + 1,
+            "selected_example_ids": [
+                example.example_id
+                for example in selected_examples
+            ],
         }
 
     return generate
@@ -180,6 +201,7 @@ def _completed(
             content=content,
             attempts=state["attempts"],
             status="completed",
+            selected_example_ids=state["selected_example_ids"],
         )
     }
 
@@ -197,6 +219,7 @@ def _manual_review(
             violations=state["violations"],
             attempts=state["attempts"],
             status="manual_review",
+            selected_example_ids=state["selected_example_ids"],
         )
     }
 
