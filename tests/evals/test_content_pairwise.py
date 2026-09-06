@@ -9,6 +9,7 @@ from marketplace_agent.evals.content_pairwise import (
     judge_blind_pairs,
     parse_human_choices,
     serialize_blind_ballot,
+    serialize_pairwise_result,
 )
 from marketplace_agent.evals.content_pipeline import (
     ContentPipelineCaseResult,
@@ -96,6 +97,29 @@ def test_rejects_invalid_or_incomplete_human_choices() -> None:
             pairs,
         )
 
+
+def test_parses_choices_from_completed_blind_ballot() -> None:
+    pairs = build_blind_pairs(
+        make_results("legacy"),
+        make_results("graph"),
+        run_id="fixed-run",
+        required_pair_count=2,
+    )
+    ballot = serialize_blind_ballot(pairs)
+    ballot_pairs = ballot["pairs"]
+    assert isinstance(ballot_pairs, list)
+    assert isinstance(ballot_pairs[0], dict)
+    assert isinstance(ballot_pairs[1], dict)
+    ballot_pairs[0]["choice"] = "A"
+    ballot_pairs[1]["choice"] = "tie"
+
+    choices = parse_human_choices(ballot, pairs)
+
+    assert choices == [
+        HumanPairChoice(pair_id="PAIR-001", choice="A"),
+        HumanPairChoice(pair_id="PAIR-002", choice="tie"),
+    ]
+
     with pytest.raises(ValueError, match="A, B, or tie"):
         parse_human_choices(
             {
@@ -180,3 +204,30 @@ def test_calculates_exact_agreement_and_kappa() -> None:
     assert metrics.comparable_pair_count == 4
     assert metrics.exact_agreement == pytest.approx(0.5)
     assert metrics.cohens_kappa == pytest.approx(0.0)
+
+
+def test_serializes_result_without_hidden_mapping_or_reasons() -> None:
+    pairs = build_blind_pairs(
+        make_results("legacy"),
+        make_results("graph"),
+        run_id="fixed-run",
+        required_pair_count=2,
+    )
+
+    payload = serialize_pairwise_result(
+        pairs=pairs,
+        human_choices=[
+            HumanPairChoice("PAIR-001", "A"),
+            HumanPairChoice("PAIR-002", "tie"),
+        ],
+        judged_pairs=[
+            JudgedPair("PAIR-001", "A"),
+            JudgedPair("PAIR-002", None, error_type="RuntimeError"),
+        ],
+    )
+
+    assert payload["human_choices"] == {"A": 1, "B": 0, "tie": 1}
+    assert payload["judge_error_types"] == {"RuntimeError": 1}
+    assert "a_version" not in str(payload)
+    assert "b_version" not in str(payload)
+    assert "reason" not in str(payload)

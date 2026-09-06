@@ -138,7 +138,7 @@ def parse_human_choices(
 ) -> list[HumanPairChoice]:
     """Validate one manual A/B/tie choice for every pair."""
 
-    raw_choices = payload.get("choices")
+    raw_choices = payload.get("choices", payload.get("pairs"))
     if not isinstance(raw_choices, list):
         raise TypeError("Choices must be a list.")
 
@@ -248,6 +248,27 @@ def evaluate_pairwise_agreement(
     return PairwiseAgreement(observed, kappa, count)
 
 
+def serialize_pairwise_result(
+    pairs: Sequence[BlindContentPair],
+    human_choices: Sequence[HumanPairChoice],
+    judged_pairs: Sequence[JudgedPair],
+) -> dict[str, object]:
+    """Serialize only aggregate blind-evaluation results."""
+
+    return {
+        "pair_count": len(pairs),
+        "human_choices": _choice_counts(human_choices),
+        "judge_choices": _choice_counts(
+            [
+                HumanPairChoice(pair_id=decision.pair_id, choice=decision.choice)
+                for decision in judged_pairs
+                if decision.choice is not None
+            ]
+        ),
+        "judge_error_types": _error_type_counts(judged_pairs),
+    }
+
+
 def _has_completed_content(result: ContentPipelineCaseResult) -> bool:
     return result.status == "completed" and result.content is not None
 
@@ -282,3 +303,22 @@ def _judged_by_id(
     if len(result) != len(decisions):
         raise ValueError("Judge choices must not repeat pair IDs.")
     return result
+
+
+def _choice_counts(choices: Sequence[HumanPairChoice]) -> dict[str, int]:
+    return {
+        label: sum(choice.choice == label for choice in choices)
+        for label in ("A", "B", "tie")
+    }
+
+
+def _error_type_counts(
+    decisions: Sequence[JudgedPair],
+) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for decision in decisions:
+        if decision.error_type is not None:
+            counts[decision.error_type] = (
+                counts.get(decision.error_type, 0) + 1
+            )
+    return counts

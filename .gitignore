@@ -10,6 +10,7 @@ data/generated/
 data/synthetic/
 data/traces/
 evals/runs/
+evals/manual/
 data/vector_store/
 evals/results/
 data/cache/
