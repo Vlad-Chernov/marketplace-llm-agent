@@ -109,3 +109,10 @@ def test_rejects_example_with_unconfirmed_used_attribute() -> None:
                 },
             ),
         )
+
+def test_gold_examples_use_laptop_category() -> None:
+    examples = load_content_examples(
+        Path("data/gold/content_examples.json")
+    )
+
+    assert {example.category for example in examples} == {"laptops"}

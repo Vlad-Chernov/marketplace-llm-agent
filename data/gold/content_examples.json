@@ -1,7 +1,7 @@
 [
   {
     "example_id": "EXAMPLE-001",
-    "category": "laptop",
+    "category": "laptops",
     "confirmed_attributes": {
       "ram_gb": "8",
       "storage_gb": "256",
@@ -29,7 +29,7 @@
   },
   {
     "example_id": "EXAMPLE-002",
-    "category": "laptop",
+    "category": "laptops",
     "confirmed_attributes": {
       "ram_gb": "8",
       "storage_gb": "512",
@@ -57,7 +57,7 @@
   },
   {
     "example_id": "EXAMPLE-003",
-    "category": "laptop",
+    "category": "laptops",
     "confirmed_attributes": {
       "ram_gb": "16",
       "storage_gb": "512",
@@ -85,7 +85,7 @@
   },
   {
     "example_id": "EXAMPLE-004",
-    "category": "laptop",
+    "category": "laptops",
     "confirmed_attributes": {
       "ram_gb": "16",
       "storage_gb": "1024",
@@ -113,7 +113,7 @@
   },
   {
     "example_id": "EXAMPLE-005",
-    "category": "laptop",
+    "category": "laptops",
     "confirmed_attributes": {
       "ram_gb": "32",
       "storage_gb": "512",
@@ -141,7 +141,7 @@
   },
   {
     "example_id": "EXAMPLE-006",
-    "category": "laptop",
+    "category": "laptops",
     "confirmed_attributes": {
       "ram_gb": "32",
       "storage_gb": "1024",
@@ -169,7 +169,7 @@
   },
   {
     "example_id": "EXAMPLE-007",
-    "category": "laptop",
+    "category": "laptops",
     "confirmed_attributes": {
       "ram_gb": "16",
       "storage_gb": "256",
@@ -197,7 +197,7 @@
   },
   {
     "example_id": "EXAMPLE-008",
-    "category": "laptop",
+    "category": "laptops",
     "confirmed_attributes": {
       "ram_gb": "8",
       "storage_gb": "1024",
