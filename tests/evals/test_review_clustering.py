@@ -2,8 +2,14 @@ from datetime import date
 
 from marketplace_agent.domain.models import Review
 from marketplace_agent.evals.review_clustering import (
+    ReviewClusterEvaluation,
+    ReviewClusteringExperimentResult,
     evaluate_review_clusters,
     run_review_clustering_experiment,
+    serialize_review_clustering_result,
+)
+from marketplace_agent.evals.review_metrics import (
+    ReviewClassificationEvaluation,
 )
 from marketplace_agent.llm.base import FakeLLMClient, LLMResponse
 from marketplace_agent.reviews.clustering import ReviewCluster
@@ -141,3 +147,48 @@ def test_runs_both_paths_on_same_cleaned_reviews() -> None:
         ["REV-000001"],
         ["REV-000002"],
     ]
+
+def experiment_result() -> ReviewClusteringExperimentResult:
+    return ReviewClusteringExperimentResult(
+        taxonomy_evaluation=ReviewClassificationEvaluation(
+            overall_recall=1.0,
+            recall_by_defect={"overheating": 1.0},
+            mean_absolute_frequency_error=0.0,
+            weak_defects=[],
+            errors=[],
+        ),
+        cluster_evaluation=ReviewClusterEvaluation(
+            weighted_purity=1.0,
+            defect_recall=1.0,
+            mean_absolute_frequency_error=0.0,
+            noise_share=0.0,
+            cluster_count=1,
+            largest_cluster_size=1,
+        ),
+        clusters=[
+            ReviewCluster(
+                "CLUSTER-001",
+                ["REV-000001"],
+            )
+        ],
+        cleaned_review_count=1,
+        taxonomy_latency_ms=10,
+        clustering_latency_ms=5,
+        taxonomy_error_types={},
+    )
+
+
+def test_serializes_clusters_without_review_text_or_hidden_labels() -> None:
+    payload = serialize_review_clustering_result(
+        experiment_result()
+    )
+
+    assert payload["clusters"] == [
+        {
+            "cluster_id": "CLUSTER-001",
+            "review_ids": ["REV-000001"],
+        }
+    ]
+    assert "text" not in repr(payload)
+    assert "defect_label" not in repr(payload)
+    assert "expected_defect_id" not in repr(payload)

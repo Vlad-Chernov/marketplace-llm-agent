@@ -253,3 +253,52 @@ def run_review_clustering_experiment(
             sorted(taxonomy_error_types.items())
         ),
     )
+
+def serialize_review_clustering_result(
+    result: ReviewClusteringExperimentResult,
+) -> dict[str, object]:
+    """Return only fields safe for a persisted experiment artifact."""
+
+    return {
+        "cleaned_review_count": result.cleaned_review_count,
+        "taxonomy_latency_ms": result.taxonomy_latency_ms,
+        "clustering_latency_ms": result.clustering_latency_ms,
+        "taxonomy_error_types": result.taxonomy_error_types,
+        "taxonomy_metrics": {
+            "overall_recall": (
+                result.taxonomy_evaluation.overall_recall
+            ),
+            "recall_by_defect": (
+                result.taxonomy_evaluation.recall_by_defect
+            ),
+            "mean_absolute_frequency_error": (
+                result.taxonomy_evaluation.mean_absolute_frequency_error
+            ),
+            "weak_defects": (
+                result.taxonomy_evaluation.weak_defects
+            ),
+        },
+        "cluster_metrics": {
+            "weighted_purity": (
+                result.cluster_evaluation.weighted_purity
+            ),
+            "defect_recall": (
+                result.cluster_evaluation.defect_recall
+            ),
+            "mean_absolute_frequency_error": (
+                result.cluster_evaluation.mean_absolute_frequency_error
+            ),
+            "noise_share": result.cluster_evaluation.noise_share,
+            "cluster_count": result.cluster_evaluation.cluster_count,
+            "largest_cluster_size": (
+                result.cluster_evaluation.largest_cluster_size
+            ),
+        },
+        "clusters": [
+            {
+                "cluster_id": cluster.cluster_id,
+                "review_ids": cluster.review_ids,
+            }
+            for cluster in result.clusters
+        ],
+    }
