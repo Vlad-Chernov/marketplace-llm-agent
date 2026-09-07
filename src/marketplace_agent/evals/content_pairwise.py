@@ -290,6 +290,19 @@ def serialize_pairwise_result(
     }
 
 
+def serialize_probe_result(
+    result: ContentPipelineCaseResult,
+) -> dict[str, object]:
+    """Serialize the minimal diagnostic outcome for one pipeline case."""
+
+    return {
+        "sku": result.sku,
+        "status": result.status,
+        "error": result.error,
+        "latency_ms": result.latency_ms,
+    }
+
+
 def _has_completed_content(result: ContentPipelineCaseResult) -> bool:
     return result.status == "completed" and result.content is not None
 

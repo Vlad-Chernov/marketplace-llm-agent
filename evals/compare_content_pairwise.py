@@ -25,6 +25,7 @@ from marketplace_agent.evals.content_pairwise import (
     parse_human_choices,
     serialize_blind_ballot,
     serialize_pairwise_result,
+    serialize_probe_result,
     summarize_pair_availability,
 )
 from marketplace_agent.evals.content_pipeline import run_pipeline_version
@@ -48,6 +49,10 @@ def parse_arguments() -> argparse.Namespace:
     evaluate = commands.add_parser("evaluate")
     evaluate.add_argument("--run-id", required=True)
     evaluate.add_argument("--choices", type=Path, required=True)
+    probe = commands.add_parser("probe")
+    probe.add_argument("--catalog-seed", type=int, default=31)
+    probe.add_argument("--noise-seed", type=int, default=41)
+    probe.add_argument("--max-attempts", type=int, default=1)
     return parser.parse_args()
 
 
@@ -63,8 +68,10 @@ def main() -> None:
     arguments = parse_arguments()
     if arguments.command == "prepare":
         prepare(arguments)
-    else:
+    elif arguments.command == "evaluate":
         evaluate(arguments)
+    else:
+        probe(arguments)
 
 
 def prepare(arguments: argparse.Namespace) -> None:
@@ -154,6 +161,26 @@ def evaluate(arguments: argparse.Namespace) -> None:
     print(f"Comparable pairs: {agreement.comparable_pair_count}")
     print(f"Exact agreement: {agreement.exact_agreement:.3f}")
     print(f"Cohen's kappa: {agreement.cohens_kappa:.3f}")
+
+
+def probe(arguments: argparse.Namespace) -> None:
+    """Run one graph SKU and expose its safe provider error text."""
+
+    settings = Settings.from_environment()
+    product = noise_product(
+        generate_clean_products(1, arguments.catalog_seed)[0],
+        Random(arguments.noise_seed),
+    )
+    result = run_pipeline_version(
+        [product],
+        lambda: create_llm_client(settings),
+        run_content_pipeline,
+        arguments.max_attempts,
+        settings.input_price_per_million,
+        settings.output_price_per_million,
+        version="langgraph-probe",
+    )[0]
+    print(json.dumps(serialize_probe_result(result), ensure_ascii=False))
 
 
 def _serialize_mapping(pairs: list[BlindContentPair]) -> dict[str, object]:

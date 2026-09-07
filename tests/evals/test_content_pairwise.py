@@ -10,6 +10,7 @@ from marketplace_agent.evals.content_pairwise import (
     parse_human_choices,
     serialize_blind_ballot,
     serialize_pairwise_result,
+    serialize_probe_result,
     summarize_pair_availability,
 )
 from marketplace_agent.evals.content_pipeline import (
@@ -257,4 +258,25 @@ def test_summarizes_errors_when_pairs_are_unavailable() -> None:
         "completed_pair_count": 2,
         "legacy_failures": {},
         "graph_failures": {"LLMProviderError": 1},
+    }
+
+
+def test_serializes_probe_error_for_one_pipeline_case() -> None:
+    result = ContentPipelineCaseResult(
+        sku="LAP-0001",
+        true_attributes={},
+        extracted_attributes={},
+        used_attributes={},
+        violations=[],
+        latency_ms=123,
+        cost_usd=0.0,
+        status="error",
+        error="LLMProviderError: HTTP 402",
+    )
+
+    assert serialize_probe_result(result) == {
+        "sku": "LAP-0001",
+        "status": "error",
+        "error": "LLMProviderError: HTTP 402",
+        "latency_ms": 123,
     }
