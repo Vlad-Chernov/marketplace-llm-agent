@@ -10,6 +10,7 @@ from marketplace_agent.evals.content_pairwise import (
     parse_human_choices,
     serialize_blind_ballot,
     serialize_pairwise_result,
+    summarize_pair_availability,
 )
 from marketplace_agent.evals.content_pipeline import (
     ContentPipelineCaseResult,
@@ -231,3 +232,29 @@ def test_serializes_result_without_hidden_mapping_or_reasons() -> None:
     assert "a_version" not in str(payload)
     assert "b_version" not in str(payload)
     assert "reason" not in str(payload)
+
+
+def test_summarizes_errors_when_pairs_are_unavailable() -> None:
+    graph_results = make_results("graph")
+    graph_results[0] = ContentPipelineCaseResult(
+        sku="LAP-0001",
+        true_attributes={"ram_gb": "16"},
+        extracted_attributes={},
+        used_attributes={},
+        violations=[],
+        latency_ms=0,
+        cost_usd=0.0,
+        status="error",
+        error="LLMProviderError: HTTP 429",
+    )
+
+    summary = summarize_pair_availability(
+        make_results("legacy"),
+        graph_results,
+    )
+
+    assert summary == {
+        "completed_pair_count": 2,
+        "legacy_failures": {},
+        "graph_failures": {"LLMProviderError": 1},
+    }

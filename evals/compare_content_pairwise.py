@@ -25,6 +25,7 @@ from marketplace_agent.evals.content_pairwise import (
     parse_human_choices,
     serialize_blind_ballot,
     serialize_pairwise_result,
+    summarize_pair_availability,
 )
 from marketplace_agent.evals.content_pipeline import run_pipeline_version
 from marketplace_agent.evals.legacy_content_pipeline import (
@@ -89,6 +90,22 @@ def prepare(arguments: argparse.Namespace) -> None:
         progress=progress,
     )
     run_id = uuid4().hex
+    availability = summarize_pair_availability(legacy_results, graph_results)
+    _write_run(
+        run_id,
+        {
+            "created_at": datetime.now(UTC).isoformat(),
+            "candidate_count": 40,
+            "catalog_seed": arguments.catalog_seed,
+            "noise_seed": arguments.noise_seed,
+            "legacy_version": arguments.legacy_version,
+            "graph_version": arguments.graph_version,
+            "availability": availability,
+        },
+    )
+    print(f"Completed pairs: {availability['completed_pair_count']}")
+    print(f"Legacy failures: {availability['legacy_failures']}")
+    print(f"Graph failures: {availability['graph_failures']}")
     from marketplace_agent.evals.content_pairwise import build_blind_pairs
 
     pairs = build_blind_pairs(legacy_results, graph_results, run_id)
@@ -104,18 +121,7 @@ def prepare(arguments: argparse.Namespace) -> None:
         json.dumps(_serialize_mapping(pairs), ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    _write_run(
-        run_id,
-        {
-            "created_at": datetime.now(UTC).isoformat(),
-            "candidate_count": 40,
-            "catalog_seed": arguments.catalog_seed,
-            "noise_seed": arguments.noise_seed,
-            "legacy_version": arguments.legacy_version,
-            "graph_version": arguments.graph_version,
-            "selected_pair_count": len(pairs),
-        },
-    )
+    _write_run(run_id, {"selected_pair_count": len(pairs)})
     print(f"Ballot: {ballot_path}")
     print("Fill every choice with A, B, or tie before evaluate.")
 

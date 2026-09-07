@@ -112,6 +112,27 @@ def build_blind_pairs(
     )
 
 
+def summarize_pair_availability(
+    legacy_results: Sequence[ContentPipelineCaseResult],
+    graph_results: Sequence[ContentPipelineCaseResult],
+) -> dict[str, object]:
+    """Return safe diagnostics before attempting to create blind pairs."""
+
+    legacy_skus = [result.sku for result in legacy_results]
+    graph_skus = [result.sku for result in graph_results]
+    if legacy_skus != graph_skus:
+        raise ValueError("Legacy and graph results must use the same SKUs.")
+
+    return {
+        "completed_pair_count": sum(
+            _has_completed_content(legacy) and _has_completed_content(graph)
+            for legacy, graph in zip(legacy_results, graph_results, strict=True)
+        ),
+        "legacy_failures": _failure_type_counts(legacy_results),
+        "graph_failures": _failure_type_counts(graph_results),
+    }
+
+
 def serialize_blind_ballot(
     pairs: Sequence[BlindContentPair],
 ) -> dict[str, object]:
@@ -321,4 +342,23 @@ def _error_type_counts(
             counts[decision.error_type] = (
                 counts.get(decision.error_type, 0) + 1
             )
+    return counts
+
+
+def _failure_type_counts(
+    results: Sequence[ContentPipelineCaseResult],
+) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for result in results:
+        if result.status == "manual_review":
+            error_type = "manual_review"
+        elif result.status == "error":
+            error_type = (
+                result.error.split(":", maxsplit=1)[0]
+                if result.error
+                else "unknown_error"
+            )
+        else:
+            continue
+        counts[error_type] = counts.get(error_type, 0) + 1
     return counts
