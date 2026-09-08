@@ -25,6 +25,7 @@ class ContentDemoRequest(BaseModel):
     sku: str = "DEMO-001"
     price: Decimal = Field(default=Decimal(1), gt=0)
     sales_count: int = Field(default=0, ge=0)
+    max_attempts: int = Field(default=1, ge=1, le=3)
 
 
 @app.get("/health")
@@ -57,4 +58,4 @@ def generate_demo_content(request: ContentDemoRequest) -> PipelineResult:
         sales_count=request.sales_count,
         supplier_description=request.supplier_description,
     )
-    return run_content_pipeline(product, client)
+    return run_content_pipeline(product, client, max_attempts=request.max_attempts)

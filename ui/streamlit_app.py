@@ -75,8 +75,9 @@ def _render_card() -> None:
                     "brand": brand,
                     "model": model,
                     "category": category,
+                    "max_attempts": 1,
                 },
-                timeout=180.0,
+                timeout=240.0,
             )
             response.raise_for_status()
         except httpx.HTTPError as error:
