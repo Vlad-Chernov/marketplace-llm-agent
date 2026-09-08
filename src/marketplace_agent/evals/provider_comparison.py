@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -173,9 +174,27 @@ def _error_types(run: EvaluationRun) -> tuple[tuple[str, int], ...]:
     for result in run.results:
         if result.error is None:
             continue
-        error_type = result.error.split(":", 1)[0]
+        error_type = _safe_error_category(result.error)
         counts[error_type] = counts.get(error_type, 0) + 1
     return tuple(sorted(counts.items()))
+
+
+def _safe_error_category(error: str) -> str:
+    """Reduce provider errors to a non-sensitive diagnostic category."""
+
+    match = re.search(r"HTTP\s+(\d{3})", error)
+    if match:
+        return f"http_{match.group(1)}"
+    if "authorization" in error.lower():
+        return "authorization"
+    for marker in ("ConnectTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout"):
+        if marker in error:
+            return marker.lower()
+    if "TransportError" in error:
+        return "transport_error"
+    if "JSONDecodeError" in error:
+        return "json_decode_error"
+    return error.split(":", 1)[0]
 
 
 def _dataset_hash(cases: Sequence[GoldenCase]) -> str:
