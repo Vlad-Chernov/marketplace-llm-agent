@@ -115,7 +115,8 @@ class OpenAICompatibleLLMClient:
             except httpx.TransportError as error:
                 if attempt == 2:
                     raise LLMProviderError(
-                        "LLM request failed."
+                        "LLM request failed: "
+                        f"{type(error).__name__}."
                     ) from error
 
                 sleep(retry_delay_seconds(attempt, uniform))

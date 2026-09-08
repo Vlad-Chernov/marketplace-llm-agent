@@ -77,7 +77,10 @@ def test_client_maps_timeout_to_safe_exception() -> None:
         transport=httpx.MockTransport(handler),
     )
 
-    with pytest.raises(LLMProviderError, match="request failed"):
+    with pytest.raises(
+        LLMProviderError,
+        match="LLM request failed: ReadTimeout\\.",
+    ):
         client.chat(
             messages=[Message(role="user", content="Привет")],
             tools=None,
