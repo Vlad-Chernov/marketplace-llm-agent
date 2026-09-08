@@ -73,6 +73,16 @@ class RuleViolation(BaseModel):
     field: str | None = None
 
 
+class PipelineAttempt(BaseModel):
+    """Summarize one generate/validate attempt for the demo UI."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    attempt: int = Field(ge=1)
+    violation_count: int = Field(ge=0)
+    status: Literal["valid", "invalid"]
+
+
 PipelineStatus = Literal["completed", "manual_review", "failed"]
 
 
@@ -86,6 +96,7 @@ class PipelineResult(BaseModel):
     violations: list[RuleViolation] = Field(default_factory=list)
     selected_example_ids: list[str] = Field(default_factory=list)
     attempts: int = Field(ge=0)
+    attempt_history: list[PipelineAttempt] = Field(default_factory=list)
     status: PipelineStatus
 
 class Review(BaseModel):

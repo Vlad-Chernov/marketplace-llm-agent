@@ -14,6 +14,7 @@ from marketplace_agent.content.generator import generate_content
 from marketplace_agent.content.repair import repair_content
 from marketplace_agent.domain.models import (
     GeneratedContent,
+    PipelineAttempt,
     PipelineResult,
     Product,
     RuleViolation,
@@ -40,6 +41,7 @@ class ContentGraphState(TypedDict, total=False):
     content: GeneratedContent | None
     violations: list[RuleViolation]
     attempts: int
+    attempt_history: list[PipelineAttempt]
     max_attempts: int
     seen_contents: set[str]
     result: PipelineResult
@@ -123,14 +125,23 @@ def _validate(llm: LLMClient):
         content = state["content"]
         assert content is not None
 
+        violations = _validate_content(
+            content,
+            state["deterministic_rules"],
+            state["semantic_rules"],
+            state["evidence"],
+            llm,
+        )
         return {
-            "violations": _validate_content(
-                content,
-                state["deterministic_rules"],
-                state["semantic_rules"],
-                state["evidence"],
-                llm,
-            )
+            "violations": violations,
+            "attempt_history": [
+                *state.get("attempt_history", []),
+                PipelineAttempt(
+                    attempt=state["attempts"],
+                    violation_count=len(violations),
+                    status="invalid" if violations else "valid",
+                ),
+            ],
         }
 
     return validate
@@ -202,6 +213,7 @@ def _completed(
             attempts=state["attempts"],
             status="completed",
             selected_example_ids=state["selected_example_ids"],
+            attempt_history=state.get("attempt_history", []),
         )
     }
 
@@ -220,6 +232,7 @@ def _manual_review(
             attempts=state["attempts"],
             status="manual_review",
             selected_example_ids=state["selected_example_ids"],
+            attempt_history=state.get("attempt_history", []),
         )
     }
 

@@ -1,7 +1,11 @@
+import json
 from dataclasses import replace
 from decimal import Decimal
+from pathlib import Path
+from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from marketplace_agent.config import Settings
@@ -9,12 +13,23 @@ from marketplace_agent.content.pipeline import run_content_pipeline
 from marketplace_agent.domain.models import PipelineResult, Product
 from marketplace_agent.evals.llm_meter import MeteredLLMClient
 from marketplace_agent.llm.factory import create_llm_client
+from marketplace_agent.llm.providers import LLMProviderError
 
 app = FastAPI(
     title="Marketplace Agent API",
     version="0.1.0",
     description="HTTP API for marketplace agent workflows.",
 )
+
+
+@app.exception_handler(LLMProviderError)
+async def handle_llm_provider_error(
+    _request: Request,
+    error: LLMProviderError,
+) -> JSONResponse:
+    """Expose a safe provider failure reason to API clients."""
+
+    return JSONResponse(status_code=502, content={"detail": str(error)})
 
 
 class ContentDemoRequest(BaseModel):
@@ -33,6 +48,13 @@ def health() -> dict[str, str]:
     """Return a lightweight liveness response."""
 
     return {"status": "ok"}
+
+
+@app.get("/demo/reviews/report")
+def review_report() -> dict[str, object]:
+    """Return the latest safe review-evaluation summary."""
+
+    return _load_latest_review_report()
 
 
 @app.post("/demo/content", response_model=PipelineResult)
@@ -59,3 +81,39 @@ def generate_demo_content(request: ContentDemoRequest) -> PipelineResult:
         supplier_description=request.supplier_description,
     )
     return run_content_pipeline(product, client, max_attempts=request.max_attempts)
+
+
+def _load_latest_review_report() -> dict[str, object]:
+    run_files = sorted(
+        (_project_root() / "evals" / "runs").glob(
+            "review-clustering-*.json"
+        ),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    if not run_files:
+        return {
+            "status": "unavailable",
+            "message": "Отчёт по отзывам ещё не запускался.",
+        }
+
+    payload: dict[str, Any] = json.loads(
+        run_files[0].read_text(encoding="utf-8")
+    )
+    result = payload["result"]
+    return {
+        "status": "available",
+        "run_id": payload["run_id"],
+        "created_at": payload["created_at"],
+        "review_count": payload["review_count"],
+        "result": {
+            "cleaned_review_count": result["cleaned_review_count"],
+            "taxonomy_metrics": result["taxonomy_metrics"],
+            "cluster_metrics": result["cluster_metrics"],
+            "taxonomy_error_types": result["taxonomy_error_types"],
+        },
+    }
+
+
+def _project_root() -> Path:
+    return Path(__file__).resolve().parents[2]

@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal, InvalidOperation
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -68,7 +69,7 @@ def _validate_used_attributes(
     for key, value in used_attributes.items():
         if key not in confirmed_attributes:
             reason = "Атрибут отсутствует в подтверждённых данных."
-        elif value != confirmed_attributes[key]:
+        elif not _values_match(value, confirmed_attributes[key]):
             reason = (
                 "Значение не совпадает с подтверждённым: "
                 f"{confirmed_attributes[key]!r}."
@@ -85,6 +86,20 @@ def _validate_used_attributes(
         )
 
     return unsupported_claims
+
+
+def _values_match(actual: Any, confirmed: Any) -> bool:
+    """Treat equivalent numeric values as matching across JSON scalar types."""
+
+    if actual == confirmed:
+        return True
+    if isinstance(actual, bool) or isinstance(confirmed, bool):
+        return False
+
+    try:
+        return Decimal(str(actual).strip()) == Decimal(str(confirmed).strip())
+    except (InvalidOperation, TypeError, ValueError):
+        return False
 
 def _build_messages(
     content: GeneratedContent,

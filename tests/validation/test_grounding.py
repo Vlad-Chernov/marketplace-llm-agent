@@ -62,6 +62,19 @@ def test_rejects_different_used_attribute_value_without_llm_call() -> None:
     ]
 
 
+def test_accepts_numeric_string_matching_confirmed_number() -> None:
+    client = RecordingLLMClient()
+
+    result = validate_grounding(
+        make_content({"screen_size": "14.0", "ssd_gb": "512"}),
+        make_evidence(),
+        client,
+    )
+
+    assert client.call_count == 1
+    assert result.unsupported_claims == []
+
+
 def test_rejects_unknown_used_attribute_without_llm_call() -> None:
     client = RecordingLLMClient()
 

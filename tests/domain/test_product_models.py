@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from marketplace_agent.domain.models import (
     GeneratedContent,
+    PipelineAttempt,
     PipelineResult,
     Product,
     RuleViolation,
@@ -77,3 +78,20 @@ def test_pipeline_result_serializes_content_and_violations() -> None:
 
     assert result.model_dump(mode="json")["content"]["title"] == "Acer Swift 14"
     assert result.violations[0].rule_id == "title-length"
+
+
+def test_pipeline_result_serializes_attempt_history() -> None:
+    result = PipelineResult(
+        sku="LAP-0001",
+        attempts=2,
+        status="manual_review",
+        attempt_history=[
+            PipelineAttempt(attempt=1, violation_count=2, status="invalid"),
+            PipelineAttempt(attempt=2, violation_count=1, status="invalid"),
+        ],
+    )
+
+    assert result.model_dump(mode="json")["attempt_history"] == [
+        {"attempt": 1, "violation_count": 2, "status": "invalid"},
+        {"attempt": 2, "violation_count": 1, "status": "invalid"},
+    ]

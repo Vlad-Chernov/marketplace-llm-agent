@@ -12,9 +12,15 @@ def main() -> None:
     st.title("Marketplace Agent")
     st.caption("Демо панели продавца: исходные данные и preview карточки")
 
-    page = st.sidebar.radio("Раздел", ["Карточка товара", "Состояние API"])
+    page = st.sidebar.radio(
+        "Раздел",
+        ["Карточка товара", "Отчёт по отзывам", "Состояние API"],
+    )
     if page == "Состояние API":
         _render_health()
+        return
+    if page == "Отчёт по отзывам":
+        _render_review_report()
         return
 
     _render_card()
@@ -81,10 +87,65 @@ def _render_card() -> None:
             )
             response.raise_for_status()
         except httpx.HTTPError as error:
-            st.error(f"Pipeline недоступен: {type(error).__name__}")
+            detail = ""
+            if isinstance(error, httpx.HTTPStatusError):
+                try:
+                    detail = error.response.json().get("detail", "")
+                except ValueError:
+                    detail = ""
+            message = detail or str(error) or type(error).__name__
+            st.error(f"Pipeline недоступен: {message}")
         else:
             st.subheader("Результат GigaChat pipeline")
-            st.json(response.json())
+            result = response.json()
+            st.metric("Статус", result["status"])
+            st.metric("Попытки", result["attempts"])
+            if result["violations"]:
+                st.subheader("Нарушения")
+                st.dataframe(result["violations"], hide_index=True)
+            else:
+                st.success("Нарушений не найдено")
+            if result.get("attempt_history"):
+                st.subheader("История попыток")
+                st.dataframe(
+                    result["attempt_history"],
+                    hide_index=True,
+                )
+            st.json(result.get("content"))
+
+
+def _render_review_report() -> None:
+    st.header("Отчёт по отзывам")
+    try:
+        response = httpx.get(
+            f"{API_URL}/demo/reviews/report",
+            timeout=5.0,
+        )
+        response.raise_for_status()
+        report = response.json()
+    except httpx.HTTPError as error:
+        st.error(f"Отчёт недоступен: {error}")
+        return
+
+    if report["status"] != "available":
+        st.info(report["message"])
+        return
+
+    result = report["result"]
+    st.caption(
+        f"Запуск {report['run_id']} · отзывов: {report['review_count']} · "
+        f"очищено: {result['cleaned_review_count']}"
+    )
+    taxonomy = result["taxonomy_metrics"]
+    clusters = result["cluster_metrics"]
+    first, second, third = st.columns(3)
+    first.metric("Recall таксономии", f"{taxonomy['overall_recall']:.1%}")
+    second.metric("Purity кластеров", f"{clusters['weighted_purity']:.1%}")
+    third.metric("Recall дефектов", f"{clusters['defect_recall']:.1%}")
+    st.subheader("Слабые дефекты")
+    st.write(taxonomy["weak_defects"] or "Нет")
+    st.subheader("Ошибки таксономии")
+    st.json(result["taxonomy_error_types"] or {})
 
 
 if __name__ == "__main__":
