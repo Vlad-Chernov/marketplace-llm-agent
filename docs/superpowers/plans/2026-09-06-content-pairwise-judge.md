@@ -4,7 +4,7 @@
 
 **Goal:** Build a reproducible blind A/B experiment comparing legacy and LangGraph product cards with a human and LLM judge.
 
-**Architecture:** Retain completed `GeneratedContent` in the existing in-memory case result. A new evaluator selects 30 completed pairs from 40 deterministic candidates, hashes `run_id` plus `pair_id` to assign A/B, validates the human ballot, calls a structured LLM judge and calculates wins plus agreement.
+**Architecture:** Retain completed `GeneratedContent` in the existing in-memory case result. A new evaluator selects 30 completed pairs from 50 deterministic candidates, hashes `run_id` plus `pair_id` to assign A/B, validates the human ballot, calls a structured LLM judge and calculates wins plus agreement.
 
 **Tech Stack:** Python 3.13, Pydantic, dataclasses, pytest, Ruff and existing LLM interfaces.
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Exactly 40 candidate products; exactly 30 pairs with completed content in both versions.
+- Exactly 50 candidate products; exactly 30 pairs with completed content in both versions.
 - A/B order is deterministic from `run_id` and `pair_id`, not version name.
 - Human choices are only `A`, `B`, `tie`, exactly once per pair.
 - Ballot has only synthetic facts and A/B cards, never version names, metrics, traces or violations.
@@ -252,7 +252,7 @@ uv run python evals/compare_content_pairwise.py evaluate --run-id <run_id> --cho
 ```python
 def test_prepare_payload_uses_forty_candidates_and_thirty_pairs() -> None:
     payload = build_prepare_payload(run_id="run-001", catalog_seed=31, noise_seed=41, pairs=make_pairs(count=30), skipped_skus=["LAP-0039"])
-    assert payload["candidate_count"] == 40
+    assert payload["candidate_count"] == 50
     assert len(payload["pairs"]) == 30
     assert payload["skipped_skus"] == ["LAP-0039"]
     assert "a_version" not in json.dumps(payload, ensure_ascii=False)
@@ -272,7 +272,7 @@ Expected: FAIL because CLI helpers do not exist.
 
 - [ ] **Step 3: Implement prepare/evaluate**
 
-`prepare` creates 40 products with `generate_clean_products(count=40, seed=catalog_seed)`, applies `noise_product` from one `Random(noise_seed)`, runs both versions using `run_pipeline_version`, writes `evals/manual/content-pairs-<run_id>.json` with null choices, and writes its technical run record. `evaluate` validates choices, judges pairs, resolves A/B to versions in memory, then writes only aggregate safe output. Add `evals/manual/` to `.gitignore`; `LLM_PROGRESS=1` prints both pipeline and judge events.
+`prepare` creates 50 products with `generate_clean_products(count=50, seed=catalog_seed)`, applies `noise_product` from one `Random(noise_seed)`, runs both versions using `run_pipeline_version`, writes `evals/manual/content-pairs-<run_id>.json` with null choices, and writes its technical run record. `evaluate` validates choices, judges pairs, resolves A/B to versions in memory, then writes only aggregate safe output. Add `evals/manual/` to `.gitignore`; `LLM_PROGRESS=1` prints both pipeline and judge events.
 
 - [ ] **Step 4: Verify**
 

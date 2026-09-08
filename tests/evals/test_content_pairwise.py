@@ -1,3 +1,9 @@
+import json
+from argparse import Namespace
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
+from types import SimpleNamespace
+
 import pytest
 
 from marketplace_agent.domain.models import GeneratedContent
@@ -17,6 +23,16 @@ from marketplace_agent.evals.content_pipeline import (
     ContentPipelineCaseResult,
 )
 from marketplace_agent.llm.base import FakeLLMClient, LLMResponse, Message
+
+
+def load_comparison_cli():
+    path = Path(__file__).parents[2] / "evals/compare_content_pairwise.py"
+    spec = spec_from_file_location("compare_content_pairwise", path)
+    assert spec is not None
+    assert spec.loader is not None
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 class RecordingFakeLLMClient(FakeLLMClient):
@@ -280,3 +296,77 @@ def test_serializes_probe_error_for_one_pipeline_case() -> None:
         "error": "LLMProviderError: HTTP 402",
         "latency_ms": 123,
     }
+
+
+def test_prepare_uses_fifty_candidates_and_selects_thirty_pairs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    compare_content_pairwise = load_comparison_cli()
+    generated_counts: list[tuple[int, int]] = []
+
+    def generate_products(count: int, seed: int) -> list[object]:
+        generated_counts.append((count, seed))
+        return [object() for _ in range(count)]
+
+    def run_version(products: list[object], *_args, **_kwargs):
+        return [
+            ContentPipelineCaseResult(
+                sku=f"LAP-{number:04d}",
+                true_attributes={"ram_gb": "16"},
+                extracted_attributes={},
+                used_attributes={"ram_gb": "16"},
+                violations=[],
+                latency_ms=0,
+                cost_usd=0.0,
+                content=make_content("card", f"LAP-{number:04d}"),
+            )
+            for number in range(1, len(products) + 1)
+        ]
+
+    monkeypatch.setattr(
+        compare_content_pairwise,
+        "PROJECT_ROOT",
+        tmp_path,
+    )
+    monkeypatch.setattr(
+        compare_content_pairwise.Settings,
+        "from_environment",
+        staticmethod(
+            lambda: SimpleNamespace(
+                input_price_per_million=0.0,
+                output_price_per_million=0.0,
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        compare_content_pairwise,
+        "generate_clean_products",
+        generate_products,
+    )
+    monkeypatch.setattr(
+        compare_content_pairwise,
+        "noise_product",
+        lambda product, _: product,
+    )
+    monkeypatch.setattr(
+        compare_content_pairwise,
+        "run_pipeline_version",
+        run_version,
+    )
+
+    compare_content_pairwise.prepare(
+        Namespace(
+            catalog_seed=31,
+            noise_seed=41,
+            max_attempts=3,
+            legacy_version="legacy-linear-v1",
+            graph_version="langgraph-v1",
+        )
+    )
+
+    assert generated_counts == [(50, 31)]
+    payload = next((tmp_path / "evals/runs").glob("*.json")).read_text()
+    assert '"candidate_count": 50' in payload
+    ballot = next((tmp_path / "evals/manual").glob("*.json"))
+    assert len(json.loads(ballot.read_text())["pairs"]) == 30

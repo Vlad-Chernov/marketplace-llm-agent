@@ -12,6 +12,8 @@ from uuid import uuid4
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
+CANDIDATE_COUNT = 50
+
 from marketplace_agent.config import Settings
 from marketplace_agent.content.pipeline import run_content_pipeline
 from marketplace_agent.data_generation.catalog import generate_clean_products
@@ -79,7 +81,10 @@ def prepare(arguments: argparse.Namespace) -> None:
     noise_rng = Random(arguments.noise_seed)
     products = [
         noise_product(product, noise_rng)
-        for product in generate_clean_products(40, arguments.catalog_seed)
+        for product in generate_clean_products(
+            CANDIDATE_COUNT,
+            arguments.catalog_seed,
+        )
     ]
     progress = print_progress if os.getenv("LLM_PROGRESS") == "1" else None
     prices = {
@@ -102,7 +107,7 @@ def prepare(arguments: argparse.Namespace) -> None:
         run_id,
         {
             "created_at": datetime.now(UTC).isoformat(),
-            "candidate_count": 40,
+            "candidate_count": CANDIDATE_COUNT,
             "catalog_seed": arguments.catalog_seed,
             "noise_seed": arguments.noise_seed,
             "legacy_version": arguments.legacy_version,
