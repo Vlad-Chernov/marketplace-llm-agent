@@ -39,7 +39,7 @@ from marketplace_agent.support.tools import (
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Compare GigaChat, Groq and OpenRouter on MVP golden cases."
+        description="Compare GigaChat and OpenRouter on MVP golden cases."
     )
     parser.add_argument(
         "--cases",
@@ -51,12 +51,6 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=int,
         default=25,
         help="Number of cases to run from the beginning of the dataset (default: 25).",
-    )
-    parser.add_argument(
-        "--groq-delay-seconds",
-        type=float,
-        default=3.0,
-        help="Pause between Groq requests (default: 3 seconds).",
     )
     parser.add_argument(
         "--openrouter-delay-seconds",
@@ -73,15 +67,12 @@ def main(argv: list[str] | None = None) -> None:
     _require_keys(settings)
     if args.limit < 1:
         raise SystemExit("--limit must be at least 1")
-    if args.groq_delay_seconds < 0:
-        raise SystemExit("--groq-delay-seconds must not be negative")
     if args.openrouter_delay_seconds < 0:
         raise SystemExit("--openrouter-delay-seconds must not be negative")
     cases = load_golden_cases(args.cases)
     cases = cases[: args.limit]
     providers = _build_providers(
         settings,
-        args.groq_delay_seconds,
         args.openrouter_delay_seconds,
     )
 
@@ -109,12 +100,11 @@ def main(argv: list[str] | None = None) -> None:
 
 def _build_providers(
     settings: Settings,
-    groq_delay_seconds: float,
     openrouter_delay_seconds: float,
 ) -> list[ProviderSpec]:
     shared = _build_executor_dependencies()
     specs: list[ProviderSpec] = []
-    for provider in ("gigachat", "groq", "openrouter"):
+    for provider in ("gigachat", "openrouter"):
         provider_settings = replace(settings, llm_provider=provider)
         specs.append(
             ProviderSpec(
@@ -147,13 +137,9 @@ def _build_providers(
                 input_price_per_million=provider_settings.input_price_per_million,
                 output_price_per_million=provider_settings.output_price_per_million,
                 request_delay_seconds=(
-                    groq_delay_seconds
-                    if provider == "groq"
-                    else (
-                        openrouter_delay_seconds
-                        if provider == "openrouter"
-                        else 0.0
-                    )
+                    openrouter_delay_seconds
+                    if provider == "openrouter"
+                    else 0.0
                 ),
             )
         )
@@ -188,8 +174,6 @@ def _require_keys(settings: Settings) -> None:
     missing = []
     if not settings.gigachat_authorization_key:
         missing.append("GIGACHAT_AUTHORIZATION_KEY")
-    if not settings.groq_api_key:
-        missing.append("GROQ_API_KEY")
     if not settings.openrouter_api_key:
         missing.append("OPENROUTER_API_KEY")
     if missing:
