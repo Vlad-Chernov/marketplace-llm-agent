@@ -64,7 +64,25 @@ def _render_card() -> None:
         st.write(preview.description)
         for bullet in preview.bullets:
             st.markdown(f"- {bullet}")
-    st.info("Это безопасный preview без вызова LLM; pipeline подключим следующим инкрементом.")
+
+    if st.button("Сгенерировать через GigaChat"):
+        try:
+            response = httpx.post(
+                f"{API_URL}/demo/content",
+                json={
+                    "supplier_description": supplier_description,
+                    "brand": brand,
+                    "model": model,
+                    "category": category,
+                },
+                timeout=180.0,
+            )
+            response.raise_for_status()
+        except httpx.HTTPError as error:
+            st.error(f"Pipeline недоступен: {type(error).__name__}")
+        else:
+            st.subheader("Результат GigaChat pipeline")
+            st.json(response.json())
 
 
 if __name__ == "__main__":
