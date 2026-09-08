@@ -4,6 +4,7 @@ import re
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from time import sleep
 from typing import Any
 
 from marketplace_agent.evals.attribute_metrics import evaluate_attribute_extraction
@@ -28,6 +29,7 @@ class ProviderSpec:
     executor_factory: Callable[[MeteredLLMClient], MvpCaseExecutor]
     input_price_per_million: float = 0.0
     output_price_per_million: float = 0.0
+    request_delay_seconds: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -88,7 +90,13 @@ def _run_one_provider(
     cases: Sequence[GoldenCase],
     progress_callback: Callable[[str, str, int, int, str], None] | None,
 ) -> EvaluationRun:
+    first_case = True
+
     def execute(case: GoldenCase) -> EvaluationPrediction:
+        nonlocal first_case
+        if not first_case and provider.request_delay_seconds > 0:
+            sleep(provider.request_delay_seconds)
+        first_case = False
         meter = MeteredLLMClient(
             provider.client_factory(),
             input_price_per_million=provider.input_price_per_million,

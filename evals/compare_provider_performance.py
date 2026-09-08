@@ -52,6 +52,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=25,
         help="Number of cases to run from the beginning of the dataset (default: 25).",
     )
+    parser.add_argument(
+        "--groq-delay-seconds",
+        type=float,
+        default=3.0,
+        help="Pause between Groq requests (default: 3 seconds).",
+    )
     return parser.parse_args(argv)
 
 
@@ -61,9 +67,11 @@ def main(argv: list[str] | None = None) -> None:
     _require_keys(settings)
     if args.limit < 1:
         raise SystemExit("--limit must be at least 1")
+    if args.groq_delay_seconds < 0:
+        raise SystemExit("--groq-delay-seconds must not be negative")
     cases = load_golden_cases(args.cases)
     cases = cases[: args.limit]
-    providers = _build_providers(settings)
+    providers = _build_providers(settings, args.groq_delay_seconds)
 
     result = run_provider_comparison(
         cases,
@@ -87,7 +95,10 @@ def main(argv: list[str] | None = None) -> None:
         )
 
 
-def _build_providers(settings: Settings) -> list[ProviderSpec]:
+def _build_providers(
+    settings: Settings,
+    groq_delay_seconds: float,
+) -> list[ProviderSpec]:
     shared = _build_executor_dependencies()
     specs: list[ProviderSpec] = []
     for provider in ("gigachat", "groq"):
@@ -114,6 +125,9 @@ def _build_providers(settings: Settings) -> list[ProviderSpec]:
                 ),
                 input_price_per_million=provider_settings.input_price_per_million,
                 output_price_per_million=provider_settings.output_price_per_million,
+                request_delay_seconds=(
+                    groq_delay_seconds if provider == "groq" else 0.0
+                ),
             )
         )
     return specs
