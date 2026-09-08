@@ -29,6 +29,22 @@ Marketplace LLM Agent автоматизирует три сценария ма�
 
 ## 2. Сквозной запуск — 2 минуты
 
+Для веб-демонстрации открой два терминала:
+
+```bash
+UV_CACHE_DIR=/private/tmp/marketplace-agent-uv-cache make api
+```
+
+```bash
+UV_CACHE_DIR=/private/tmp/marketplace-agent-uv-cache make ui
+```
+
+Открой `http://localhost:8501`. Пока карточка или ответ поддержки
+генерируются, можно переключаться между разделами: операция продолжается в
+backend, а интерфейс автоматически получает результат по `job_id`.
+
+Для терминального сценария используй:
+
 ```bash
 UV_CACHE_DIR=/private/tmp/marketplace-agent-uv-cache make demo
 ```
@@ -92,6 +108,7 @@ UV_CACHE_DIR=/private/tmp/marketplace-agent-uv-cache make eval
 - Ответы внешней LLM могут иметь нестабильную задержку.
 - Кэш снижает число повторных запросов; поэтому токены и latency разных прогонов нельзя сравнивать напрямую.
 - Стоимость не измерена, пока цены модели не указаны в `.env`.
+- Demo-задачи хранятся в памяти FastAPI и исчезают при перезапуске backend.
 
 ## Частые проблемы
 

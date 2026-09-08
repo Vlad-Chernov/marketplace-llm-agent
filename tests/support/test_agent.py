@@ -1,4 +1,4 @@
-from marketplace_agent.llm.base import FakeLLMClient, LLMResponse
+from marketplace_agent.llm.base import FakeLLMClient, LLMResponse, Message
 from marketplace_agent.support.agent import AgentAnswer, SupportAgent
 from marketplace_agent.support.tools import ToolResult
 
@@ -111,6 +111,35 @@ def test_calls_policy_tool_then_returns_cited_answer() -> None:
     ]
     assert answer.status == "answered"
     assert answer.citations == ["returns-01"]
+
+
+def test_asks_for_clarification_when_customer_retracts_a_fact() -> None:
+    agent = SupportAgent(
+        registry=NoCallRegistry(),
+        llm=FakeLLMClient(
+            [
+                response(
+                    '{"kind":"final","status":"needs_clarification",'
+                    '"text":"Подтвердите, пожалуйста: обувь носили на улице '
+                    'или это была шутка?","citations":[]}'
+                )
+            ]
+        ),
+    )
+
+    answer = agent.run(
+        "Я ходил в них по улице. Ладно, я пошутил.",
+        "session-001",
+        [
+            Message(
+                role="assistant",
+                content="Возврат зависит от того, носили ли обувь на улице.",
+            )
+        ],
+    )
+
+    assert answer.status == "needs_clarification"
+    assert "Подтвердите" in answer.text
 
 
 def test_escalates_before_repeating_identical_tool_call() -> None:
@@ -322,6 +351,36 @@ def test_prompt_contains_session_and_policy_tool_rule(
     assert "До результата search_policy не возвращай final или escalated." in prompt
     assert '"kind":"tool_call","tool_name":"search_policy"' in prompt
     assert "Если в вопросе указан номер заказа, сначала вызови get_order." in prompt
+
+
+def test_prompt_instructs_agent_to_clarify_contradictions(monkeypatch) -> None:
+    registry = PolicyRegistry()
+    client = FakeLLMClient(
+        [
+            response(
+                '{"kind":"final","status":"needs_clarification",'
+                '"text":"Уточните факт.","citations":[]}'
+            )
+        ]
+    )
+    seen_messages = []
+    original_chat = client.chat
+
+    def record_chat(**kwargs):
+        seen_messages.append(kwargs["messages"])
+        return original_chat(**kwargs)
+
+    monkeypatch.setattr(client, "chat", record_chat)
+
+    SupportAgent(registry, client).run(
+        "Я не носил товар, это была шутка.",
+        "session-001",
+        [],
+    )
+
+    prompt = seen_messages[0][-1].content
+    assert "противоречивые утверждения" in prompt
+    assert "needs_clarification" in prompt
 
 def test_escalates_ignore_rules_prompt_injection() -> None:
     agent = SupportAgent(

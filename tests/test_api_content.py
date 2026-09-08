@@ -1,3 +1,5 @@
+from time import sleep
+
 from fastapi.testclient import TestClient
 
 from marketplace_agent import api
@@ -92,3 +94,36 @@ def test_support_endpoint_returns_answer_and_latency(monkeypatch) -> None:
     assert response.json()["answer"]["status"] == "answered"
     assert response.json()["answer"]["citations"] == ["returns-01"]
     assert response.json()["latency_ms"] >= 0
+
+
+def test_support_job_can_be_polled_until_completion(monkeypatch) -> None:
+    monkeypatch.setattr(
+        api,
+        "_run_support_request",
+        lambda _request: AgentAnswer(
+            status="answered",
+            text="Ответ из фоновой задачи.",
+            citations=["returns-01"],
+        ),
+    )
+
+    client = TestClient(app)
+    response = client.post(
+        "/demo/support/jobs",
+        json={"message": "Сколько дней можно вернуть товар?"},
+    )
+    assert response.status_code == 202
+    job_id = response.json()["job_id"]
+
+    for _ in range(20):
+        status = client.get(f"/demo/jobs/{job_id}")
+        assert status.status_code == 200
+        payload = status.json()
+        if payload["status"] == "completed":
+            assert payload["result"]["answer"]["text"] == (
+                "Ответ из фоновой задачи."
+            )
+            break
+        sleep(0.01)
+    else:
+        raise AssertionError("Background job did not complete.")

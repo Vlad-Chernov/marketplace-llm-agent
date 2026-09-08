@@ -1,9 +1,12 @@
 import json
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
+from threading import Lock
 from time import perf_counter
 from typing import Any
+from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -35,6 +38,9 @@ app = FastAPI(
     version="0.1.0",
     description="HTTP API for marketplace agent workflows.",
 )
+_job_executor = ThreadPoolExecutor(max_workers=4)
+_jobs: dict[str, dict[str, object]] = {}
+_jobs_lock = Lock()
 
 
 @app.exception_handler(LLMProviderError)
@@ -77,6 +83,18 @@ class SupportDemoResponse(BaseModel):
     latency_ms: int = Field(ge=0)
 
 
+class DemoJobResponse(BaseModel):
+    """Expose the status of a background demo operation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    job_id: str
+    kind: str
+    status: str
+    result: dict[str, object] | None = None
+    error: str | None = None
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     """Return a lightweight liveness response."""
@@ -103,10 +121,50 @@ def support_demo(request: SupportDemoRequest) -> SupportDemoResponse:
     )
 
 
+@app.post("/demo/support/jobs", status_code=202)
+def start_support_job(request: SupportDemoRequest) -> DemoJobResponse:
+    """Start support processing without blocking the browser session."""
+
+    return _submit_job(
+        "support",
+        lambda: _run_support_request_response(request),
+    )
+
+
 @app.post("/demo/content", response_model=PipelineResult)
 def generate_demo_content(request: ContentDemoRequest) -> PipelineResult:
     """Generate one product card through the production content pipeline."""
 
+    return _run_content_request(request)
+
+
+@app.post("/demo/content/jobs", status_code=202)
+def start_content_job(request: ContentDemoRequest) -> DemoJobResponse:
+    """Start content processing without blocking the browser session."""
+
+    return _submit_job(
+        "content",
+        lambda: _run_content_request(request),
+    )
+
+
+@app.get("/demo/jobs/{job_id}", response_model=DemoJobResponse)
+def get_demo_job(job_id: str) -> DemoJobResponse:
+    """Return a background job status and its completed safe result."""
+
+    with _jobs_lock:
+        job = _jobs.get(job_id)
+        if job is None:
+            return DemoJobResponse(
+                job_id=job_id,
+                kind="unknown",
+                status="not_found",
+                error="Задача не найдена.",
+            )
+        return DemoJobResponse(**job)
+
+
+def _run_content_request(request: ContentDemoRequest) -> PipelineResult:
     settings = Settings.from_environment()
     gigachat_settings = replace(settings, llm_provider="gigachat")
     if not gigachat_settings.gigachat_authorization_key:
@@ -127,6 +185,39 @@ def generate_demo_content(request: ContentDemoRequest) -> PipelineResult:
         supplier_description=request.supplier_description,
     )
     return run_content_pipeline(product, client, max_attempts=request.max_attempts)
+
+
+def _submit_job(
+    kind: str,
+    work: Any,
+) -> DemoJobResponse:
+    job_id = uuid4().hex
+    with _jobs_lock:
+        _jobs[job_id] = {
+            "job_id": job_id,
+            "kind": kind,
+            "status": "queued",
+            "result": None,
+            "error": None,
+        }
+    _job_executor.submit(_execute_job, job_id, work)
+    return DemoJobResponse(**_jobs[job_id])
+
+
+def _execute_job(job_id: str, work: Any) -> None:
+    with _jobs_lock:
+        _jobs[job_id]["status"] = "running"
+    try:
+        result = work()
+        serialized = result.model_dump(mode="json")
+    except Exception as error:  # noqa: BLE001
+        with _jobs_lock:
+            _jobs[job_id]["status"] = "failed"
+            _jobs[job_id]["error"] = str(error)
+        return
+    with _jobs_lock:
+        _jobs[job_id]["status"] = "completed"
+        _jobs[job_id]["result"] = serialized
 
 
 def _load_latest_review_report() -> dict[str, object]:
@@ -188,6 +279,17 @@ def _run_support_request(request: SupportDemoRequest) -> AgentAnswer:
         message=request.message,
         session_id=request.session_id,
         history=request.history,
+    )
+
+
+def _run_support_request_response(
+    request: SupportDemoRequest,
+) -> SupportDemoResponse:
+    started_at = perf_counter()
+    answer = _run_support_request(request)
+    return SupportDemoResponse(
+        answer=answer,
+        latency_ms=round((perf_counter() - started_at) * 1000),
     )
 
 

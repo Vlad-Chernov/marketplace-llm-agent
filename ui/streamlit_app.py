@@ -65,6 +65,13 @@ def _render_card() -> None:
         generate = st.form_submit_button("Сгенерировать через GigaChat")
 
     if not show_preview and not generate:
+        content_job_id = st.session_state.get("content_job_id")
+        if content_job_id:
+            _poll_content_job(content_job_id)
+        elif st.session_state.get("last_pipeline_result"):
+            _show_pipeline_result(st.session_state["last_pipeline_result"])
+        elif st.session_state.get("content_job_error"):
+            st.error(st.session_state["content_job_error"])
         return
 
     preview = build_card_preview(
@@ -87,7 +94,7 @@ def _render_card() -> None:
     if generate:
         try:
             response = httpx.post(
-                f"{API_URL}/demo/content",
+                f"{API_URL}/demo/content/jobs",
                 json={
                     "supplier_description": supplier_description,
                     "brand": brand,
@@ -95,36 +102,60 @@ def _render_card() -> None:
                     "category": category,
                     "max_attempts": 1,
                 },
-                timeout=240.0,
+                timeout=5.0,
             )
             response.raise_for_status()
+            st.session_state["content_job_id"] = response.json()["job_id"]
+            st.session_state["content_job_error"] = None
         except httpx.HTTPError as error:
-            detail = ""
-            if isinstance(error, httpx.HTTPStatusError):
-                try:
-                    detail = error.response.json().get("detail", "")
-                except ValueError:
-                    detail = ""
-            message = detail or str(error) or type(error).__name__
-            st.error(f"Pipeline недоступен: {message}")
-        else:
-            st.subheader("Результат GigaChat pipeline")
-            result = response.json()
-            st.session_state["last_pipeline_result"] = result
-            st.metric("Статус", result["status"])
-            st.metric("Попытки", result["attempts"])
-            if result["violations"]:
-                st.subheader("Нарушения")
-                st.dataframe(result["violations"], hide_index=True)
-            else:
-                st.success("Нарушений не найдено")
-            if result.get("attempt_history"):
-                st.subheader("История попыток")
-                st.dataframe(
-                    result["attempt_history"],
-                    hide_index=True,
-                )
-            st.json(result.get("content"))
+            st.error(f"Не удалось запустить pipeline: {error}")
+
+    content_job_id = st.session_state.get("content_job_id")
+    if content_job_id:
+        _poll_content_job(content_job_id)
+    elif st.session_state.get("last_pipeline_result"):
+        _show_pipeline_result(st.session_state["last_pipeline_result"])
+    elif st.session_state.get("content_job_error"):
+        st.error(st.session_state["content_job_error"])
+
+
+def _show_pipeline_result(result: dict[str, object]) -> None:
+    st.subheader("Результат GigaChat pipeline")
+    st.metric("Статус", result["status"])
+    st.metric("Попытки", result["attempts"])
+    if result["violations"]:
+        st.subheader("Нарушения")
+        st.dataframe(result["violations"], hide_index=True)
+    else:
+        st.success("Нарушений не найдено")
+    if result.get("attempt_history"):
+        st.subheader("История попыток")
+        st.dataframe(result["attempt_history"], hide_index=True)
+    st.json(result.get("content"))
+
+
+@st.fragment(run_every=2)
+def _poll_content_job(job_id: str) -> None:
+    try:
+        response = httpx.get(f"{API_URL}/demo/jobs/{job_id}", timeout=5.0)
+        response.raise_for_status()
+        payload = response.json()
+    except httpx.HTTPError as error:
+        st.error(f"Статус pipeline недоступен: {error}")
+        return
+
+    if payload["status"] in {"queued", "running"}:
+        st.info("Pipeline выполняется в фоне. Можно переходить по вкладкам.")
+    elif payload["status"] == "completed":
+        st.session_state["content_job_id"] = None
+        st.session_state["content_job_error"] = None
+        st.session_state["last_pipeline_result"] = payload["result"]
+        _show_pipeline_result(payload["result"])
+    else:
+        st.session_state["content_job_id"] = None
+        error = f"Pipeline завершился с ошибкой: {payload.get('error')}"
+        st.session_state["content_job_error"] = error
+        st.error(error)
 
 
 def _render_review_report() -> None:
@@ -168,8 +199,20 @@ def _render_support_chat() -> None:
     for message in messages:
         with st.chat_message(message["role"]):
             st.write(message["content"])
+            if message.get("escalation_reason"):
+                st.warning(
+                    "Причина эскалации: "
+                    f"{message['escalation_reason']}"
+                )
 
-    question = st.chat_input("Напишите вопрос о доставке, возврате или заказе")
+    support_job_id = st.session_state.get("support_job_id")
+    if support_job_id:
+        _poll_support_job(support_job_id)
+
+    question = st.chat_input(
+        "Напишите вопрос о доставке, возврате или заказе",
+        disabled=bool(support_job_id),
+    )
     if not question:
         return
 
@@ -177,40 +220,68 @@ def _render_support_chat() -> None:
         {"role": item["role"], "content": item["content"]}
         for item in messages
     ]
-    messages.append({"role": "user", "content": question})
-    with st.chat_message("user"):
-        st.write(question)
-
     try:
         response = httpx.post(
-            f"{API_URL}/demo/support",
+            f"{API_URL}/demo/support/jobs",
             json={
                 "message": question,
                 "history": history,
             },
-            timeout=240.0,
+            timeout=5.0,
         )
         response.raise_for_status()
-        payload = response.json()
+        st.session_state["support_job_id"] = response.json()["job_id"]
+        st.session_state["support_pending_question"] = question
     except httpx.HTTPError as error:
         answer = f"Сервис поддержки недоступен: {error}"
         st.error(answer)
         return
 
-    answer = payload["answer"]
-    messages.append({"role": "assistant", "content": answer["text"]})
+    st.rerun()
+
+
+@st.fragment(run_every=2)
+def _poll_support_job(job_id: str) -> None:
+    try:
+        response = httpx.get(f"{API_URL}/demo/jobs/{job_id}", timeout=5.0)
+        response.raise_for_status()
+        payload = response.json()
+    except httpx.HTTPError as error:
+        st.error(f"Статус поддержки недоступен: {error}")
+        return
+
+    if payload["status"] in {"queued", "running"}:
+        st.info("Ответ готовится в фоне. Можно переходить по вкладкам.")
+        return
+    if payload["status"] != "completed":
+        st.session_state["support_job_id"] = None
+        st.error(f"Поддержка завершилась с ошибкой: {payload.get('error')}")
+        return
+
+    result = payload["result"]
+    messages = st.session_state.setdefault("support_messages", [])
+    messages.append(
+        {
+            "role": "user",
+            "content": st.session_state.pop("support_pending_question", ""),
+        }
+    )
+    answer = result["answer"]
+    messages.append(
+        {
+            "role": "assistant",
+            "content": answer["text"],
+            "escalation_reason": answer["escalation_reason"],
+        }
+    )
     st.session_state.setdefault("support_metrics", []).append(
         {
             "status": answer["status"],
-            "latency_ms": payload["latency_ms"],
+            "latency_ms": result["latency_ms"],
         }
     )
-    with st.chat_message("assistant"):
-        st.write(answer["text"])
-        if answer["citations"]:
-            st.caption("Источники: " + ", ".join(answer["citations"]))
-        if answer["escalation_reason"]:
-            st.warning("Вопрос передан специалисту.")
+    st.session_state["support_job_id"] = None
+    st.rerun()
 
 
 def _render_metrics() -> None:

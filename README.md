@@ -94,6 +94,27 @@ LLM_PROGRESS=1 UV_CACHE_DIR=/private/tmp/marketplace-agent-uv-cache make eval
 Вопрос покупателя → guardrails → инструменты → поиск policy / заказ → ответ с цитатами
 ```
 
+## Локальная веб-демонстрация
+
+Запусти FastAPI и Streamlit в двух терминалах:
+
+```bash
+UV_CACHE_DIR=/private/tmp/marketplace-agent-uv-cache make api
+```
+
+```bash
+UV_CACHE_DIR=/private/tmp/marketplace-agent-uv-cache make ui
+```
+
+Открой `http://localhost:8501`. В интерфейсе доступны карточка товара,
+отчёт по отзывам, чат поддержки, метрики и состояние API.
+
+Генерация карточки и ответы поддержки запускаются как фоновые задачи.
+После нажатия кнопки можно переходить между вкладками: Streamlit проверяет
+статус задачи автоматически и показывает результат после завершения.
+
+API-документация доступна по адресу `http://127.0.0.1:8000/docs`.
+
 ## Финальная оценка MVP
 
 Запуск: `3a1a83ab1ea4463d9548c17915d413fe`<br>
@@ -118,6 +139,8 @@ LLM_PROGRESS=1 UV_CACHE_DIR=/private/tmp/marketplace-agent-uv-cache make eval
 - Ресурсные метрики зависят от кэша.
 - Стоимость сейчас равна `0.000000 USD`, потому что цены модели не указаны в `.env`; это не реальная стоимость API.
 - Демо требует действующий ключ GigaChat и доступ к Hugging Face для embedding-модели.
+- Фоновые задачи хранятся в памяти процесса FastAPI; перезапуск backend удаляет
+  незавершённые demo-задачи.
 
 ## Проверки
 

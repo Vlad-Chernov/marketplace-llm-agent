@@ -1,4 +1,4 @@
-.PHONY: setup test lint check data ingest demo eval evaluate-retrieval compare-retrieval evaluate-mvp
+.PHONY: setup test lint check data ingest demo eval api ui evaluate-retrieval compare-retrieval evaluate-mvp
 
 setup:
 	uv sync --all-groups
@@ -34,3 +34,9 @@ evaluate-mvp:
 	uv run python scripts/run_mvp_final.py
 
 eval: evaluate-mvp
+
+api:
+	PYTHONPATH=src uv run uvicorn marketplace_agent.api:app --reload
+
+ui:
+	PYTHONPATH=src uv run streamlit run ui/streamlit_app.py
