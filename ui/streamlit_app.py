@@ -43,9 +43,10 @@ def _render_card() -> None:
         brand = st.text_input("Бренд", value="Lenovo")
         model = st.text_input("Модель", value="IdeaPad")
         category = st.text_input("Категория", value="laptops")
-        submitted = st.form_submit_button("Показать preview")
+        show_preview = st.form_submit_button("Показать preview")
+        generate = st.form_submit_button("Сгенерировать через GigaChat")
 
-    if not submitted:
+    if not show_preview and not generate:
         return
 
     preview = build_card_preview(
@@ -65,7 +66,7 @@ def _render_card() -> None:
         for bullet in preview.bullets:
             st.markdown(f"- {bullet}")
 
-    if st.button("Сгенерировать через GigaChat"):
+    if generate:
         try:
             response = httpx.post(
                 f"{API_URL}/demo/content",
