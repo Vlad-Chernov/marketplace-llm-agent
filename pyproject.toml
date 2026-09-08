@@ -15,6 +15,7 @@ dependencies = [
     "ru-core-news-sm",
     "sentence-transformers>=6.0.0",
     "spacy>=3.8.0,<3.9.0",
+    "streamlit>=1.40.0",
     "uvicorn[standard]>=0.34.0",
 ]
 
