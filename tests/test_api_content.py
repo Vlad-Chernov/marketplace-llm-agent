@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from marketplace_agent import api
 from marketplace_agent.api import app
 from marketplace_agent.llm.providers import LLMProviderError
+from marketplace_agent.support.agent import AgentAnswer
 
 
 def test_content_demo_rejects_empty_supplier_description() -> None:
@@ -69,3 +70,25 @@ def test_review_report_returns_safe_metrics(monkeypatch) -> None:
     assert payload["result"]["taxonomy_metrics"]["overall_recall"] == 1.0
     assert "review_text" not in response.text
     assert "defect_label" not in response.text
+
+
+def test_support_endpoint_returns_answer_and_latency(monkeypatch) -> None:
+    monkeypatch.setattr(
+        api,
+        "_run_support_request",
+        lambda _request: AgentAnswer(
+            status="answered",
+            text="Вернуть товар можно в течение 14 дней.",
+            citations=["returns-01"],
+        ),
+    )
+
+    response = TestClient(app).post(
+        "/demo/support",
+        json={"message": "Сколько дней можно вернуть товар?"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["answer"]["status"] == "answered"
+    assert response.json()["answer"]["citations"] == ["returns-01"]
+    assert response.json()["latency_ms"] >= 0

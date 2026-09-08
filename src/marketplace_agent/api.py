@@ -2,18 +2,33 @@ import json
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from marketplace_agent.config import Settings
 from marketplace_agent.content.pipeline import run_content_pipeline
 from marketplace_agent.domain.models import PipelineResult, Product
 from marketplace_agent.evals.llm_meter import MeteredLLMClient
+from marketplace_agent.llm.base import Message
 from marketplace_agent.llm.factory import create_llm_client
 from marketplace_agent.llm.providers import LLMProviderError
+from marketplace_agent.retrieval.documents import load_policy_chunks
+from marketplace_agent.retrieval.lexical import BM25Retriever
+from marketplace_agent.storage.repositories import (
+    OrderRepository,
+    ProductRepository,
+)
+from marketplace_agent.support.agent import AgentAnswer, SupportAgent
+from marketplace_agent.support.registry import ToolRegistry
+from marketplace_agent.support.tools import (
+    GetOrderTool,
+    GetProductTool,
+    SearchPolicyTool,
+)
 
 app = FastAPI(
     title="Marketplace Agent API",
@@ -43,6 +58,25 @@ class ContentDemoRequest(BaseModel):
     max_attempts: int = Field(default=1, ge=1, le=3)
 
 
+class SupportDemoRequest(BaseModel):
+    """Store one safe support-chat request."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    message: str = Field(min_length=1)
+    session_id: str = Field(default="demo-session", min_length=1)
+    history: list[Message] = Field(default_factory=list)
+
+
+class SupportDemoResponse(BaseModel):
+    """Return a support answer and observable request timing."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    answer: AgentAnswer
+    latency_ms: int = Field(ge=0)
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     """Return a lightweight liveness response."""
@@ -55,6 +89,18 @@ def review_report() -> dict[str, object]:
     """Return the latest safe review-evaluation summary."""
 
     return _load_latest_review_report()
+
+
+@app.post("/demo/support", response_model=SupportDemoResponse)
+def support_demo(request: SupportDemoRequest) -> SupportDemoResponse:
+    """Answer one support question through the guarded support agent."""
+
+    started_at = perf_counter()
+    answer = _run_support_request(request)
+    return SupportDemoResponse(
+        answer=answer,
+        latency_ms=round((perf_counter() - started_at) * 1000),
+    )
 
 
 @app.post("/demo/content", response_model=PipelineResult)
@@ -113,6 +159,36 @@ def _load_latest_review_report() -> dict[str, object]:
             "taxonomy_error_types": result["taxonomy_error_types"],
         },
     }
+
+
+def _run_support_request(request: SupportDemoRequest) -> AgentAnswer:
+    settings = Settings.from_environment()
+    gigachat_settings = replace(settings, llm_provider="gigachat")
+    if not gigachat_settings.gigachat_authorization_key:
+        raise ValueError("GIGACHAT_AUTHORIZATION_KEY is required.")
+
+    llm = MeteredLLMClient(
+        create_llm_client(gigachat_settings),
+        input_price_per_million=gigachat_settings.input_price_per_million,
+        output_price_per_million=gigachat_settings.output_price_per_million,
+    )
+    root = _project_root()
+    database_path = root / "data" / "synthetic" / "marketplace.db"
+    retriever = BM25Retriever(
+        load_policy_chunks(root / "data" / "support")
+    )
+    registry = ToolRegistry(
+        [
+            GetProductTool(ProductRepository(database_path)),
+            GetOrderTool(OrderRepository(database_path)),
+            SearchPolicyTool(retriever),
+        ]
+    )
+    return SupportAgent(registry, llm).run(
+        message=request.message,
+        session_id=request.session_id,
+        history=request.history,
+    )
 
 
 def _project_root() -> Path:

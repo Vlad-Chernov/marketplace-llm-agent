@@ -14,13 +14,25 @@ def main() -> None:
 
     page = st.sidebar.radio(
         "Раздел",
-        ["Карточка товара", "Отчёт по отзывам", "Состояние API"],
+        [
+            "Карточка товара",
+            "Отчёт по отзывам",
+            "Чат поддержки",
+            "Метрики",
+            "Состояние API",
+        ],
     )
     if page == "Состояние API":
         _render_health()
         return
     if page == "Отчёт по отзывам":
         _render_review_report()
+        return
+    if page == "Чат поддержки":
+        _render_support_chat()
+        return
+    if page == "Метрики":
+        _render_metrics()
         return
 
     _render_card()
@@ -98,6 +110,7 @@ def _render_card() -> None:
         else:
             st.subheader("Результат GigaChat pipeline")
             result = response.json()
+            st.session_state["last_pipeline_result"] = result
             st.metric("Статус", result["status"])
             st.metric("Попытки", result["attempts"])
             if result["violations"]:
@@ -146,6 +159,77 @@ def _render_review_report() -> None:
     st.write(taxonomy["weak_defects"] or "Нет")
     st.subheader("Ошибки таксономии")
     st.json(result["taxonomy_error_types"] or {})
+
+
+def _render_support_chat() -> None:
+    st.header("Чат поддержки")
+    st.caption("Ответы основаны на правилах магазина и данных текущей сессии.")
+    messages = st.session_state.setdefault("support_messages", [])
+    for message in messages:
+        with st.chat_message(message["role"]):
+            st.write(message["content"])
+
+    question = st.chat_input("Напишите вопрос о доставке, возврате или заказе")
+    if not question:
+        return
+
+    history = [
+        {"role": item["role"], "content": item["content"]}
+        for item in messages
+    ]
+    messages.append({"role": "user", "content": question})
+    with st.chat_message("user"):
+        st.write(question)
+
+    try:
+        response = httpx.post(
+            f"{API_URL}/demo/support",
+            json={
+                "message": question,
+                "history": history,
+            },
+            timeout=240.0,
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except httpx.HTTPError as error:
+        answer = f"Сервис поддержки недоступен: {error}"
+        st.error(answer)
+        return
+
+    answer = payload["answer"]
+    messages.append({"role": "assistant", "content": answer["text"]})
+    st.session_state.setdefault("support_metrics", []).append(
+        {
+            "status": answer["status"],
+            "latency_ms": payload["latency_ms"],
+        }
+    )
+    with st.chat_message("assistant"):
+        st.write(answer["text"])
+        if answer["citations"]:
+            st.caption("Источники: " + ", ".join(answer["citations"]))
+        if answer["escalation_reason"]:
+            st.warning("Вопрос передан специалисту.")
+
+
+def _render_metrics() -> None:
+    st.header("Метрики демо")
+    pipeline_result = st.session_state.get("last_pipeline_result")
+    support_metrics = st.session_state.get("support_metrics", [])
+    first, second, third = st.columns(3)
+    first.metric(
+        "Последний статус карточки",
+        pipeline_result["status"] if pipeline_result else "—",
+    )
+    second.metric(
+        "Нарушения карточки",
+        len(pipeline_result["violations"]) if pipeline_result else 0,
+    )
+    third.metric("Вопросов поддержки", len(support_metrics))
+    if support_metrics:
+        st.subheader("Запросы поддержки")
+        st.dataframe(support_metrics, hide_index=True)
 
 
 if __name__ == "__main__":
