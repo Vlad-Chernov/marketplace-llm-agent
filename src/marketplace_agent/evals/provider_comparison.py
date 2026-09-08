@@ -47,6 +47,7 @@ class ProviderRunSummary:
     completion_tokens: int
     cost_usd: float
     cost_status: str
+    error_types: tuple[tuple[str, int], ...]
 
 
 @dataclass(frozen=True)
@@ -120,7 +121,13 @@ def serialize_provider_comparison(
         "created_at": result.created_at,
         "case_count": result.case_count,
         "dataset_sha256": result.dataset_sha256,
-        "runs": [asdict(run) for run in result.runs],
+        "runs": [
+            {
+                **asdict(run),
+                "error_types": dict(run.error_types),
+            }
+            for run in result.runs
+        ],
     }
 
 
@@ -157,7 +164,18 @@ def _summarize(provider: ProviderSpec, run: EvaluationRun) -> ProviderRunSummary
             and provider.output_price_per_million == 0
             else "measured"
         ),
+        error_types=_error_types(run),
     )
+
+
+def _error_types(run: EvaluationRun) -> tuple[tuple[str, int], ...]:
+    counts: dict[str, int] = {}
+    for result in run.results:
+        if result.error is None:
+            continue
+        error_type = result.error.split(":", 1)[0]
+        counts[error_type] = counts.get(error_type, 0) + 1
+    return tuple(sorted(counts.items()))
 
 
 def _dataset_hash(cases: Sequence[GoldenCase]) -> str:

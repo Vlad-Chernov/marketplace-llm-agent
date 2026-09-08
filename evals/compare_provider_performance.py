@@ -46,6 +46,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=PROJECT_ROOT / "data" / "gold" / "mvp_cases.json",
     )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=25,
+        help="Number of cases to run from the beginning of the dataset (default: 25).",
+    )
     return parser.parse_args(argv)
 
 
@@ -53,7 +59,10 @@ def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     settings = Settings.from_environment()
     _require_keys(settings)
+    if args.limit < 1:
+        raise SystemExit("--limit must be at least 1")
     cases = load_golden_cases(args.cases)
+    cases = cases[: args.limit]
     providers = _build_providers(settings)
 
     result = run_provider_comparison(
@@ -73,7 +82,8 @@ def main(argv: list[str] | None = None) -> None:
     for run in result.runs:
         print(
             f"{run.provider}: errors={run.error_count}, "
-            f"p50={run.latency_p50_ms} ms, p95={run.latency_p95_ms} ms"
+            f"p50={run.latency_p50_ms} ms, p95={run.latency_p95_ms} ms, "
+            f"error_types={dict(run.error_types)}"
         )
 
 
