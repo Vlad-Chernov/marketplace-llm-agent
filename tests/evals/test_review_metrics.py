@@ -71,6 +71,10 @@ def test_measures_recall_frequency_error_and_typical_errors() -> None:
         "battery_drain": 0.0,
         "overheating": 0.5,
     }
+    assert evaluation.defect_counts == {
+        "battery_drain": 1,
+        "overheating": 2,
+    }
     assert evaluation.mean_absolute_frequency_error == 0.5
     assert evaluation.weak_defects == [
         "battery_drain",

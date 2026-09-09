@@ -1,6 +1,6 @@
 from collections import Counter
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
@@ -34,6 +34,7 @@ class ReviewClassificationEvaluation:
     mean_absolute_frequency_error: float
     weak_defects: list[str]
     errors: list[ReviewEvaluationError]
+    defect_counts: dict[str, int] = field(default_factory=dict)
 
 
 def evaluate_review_classification(
@@ -138,6 +139,7 @@ def evaluate_review_classification(
             if recall < 0.8
         ],
         errors=errors,
+        defect_counts=dict(sorted(expected_counts.items())),
     )
 
 def append_review_evaluation_report(

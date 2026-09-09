@@ -277,6 +277,7 @@ def serialize_review_clustering_result(
             "weak_defects": (
                 result.taxonomy_evaluation.weak_defects
             ),
+            "defect_counts": result.taxonomy_evaluation.defect_counts,
         },
         "cluster_metrics": {
             "weighted_purity": (

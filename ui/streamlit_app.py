@@ -3,6 +3,11 @@ import httpx
 import streamlit as st
 
 from marketplace_agent.ui_preview import build_card_preview
+from marketplace_agent.ui_review_report import (
+    build_defect_distribution,
+    defect_display_name,
+    review_report_labels,
+)
 
 API_URL = "http://127.0.0.1:8000"
 
@@ -182,13 +187,49 @@ def _render_review_report() -> None:
     )
     taxonomy = result["taxonomy_metrics"]
     clusters = result["cluster_metrics"]
+    labels = review_report_labels()
+    st.subheader("Классификация отзывов по типам дефектов")
+    st.caption(
+        "LLM сопоставляет каждый отзыв с фиксированной категорией дефекта."
+    )
     first, second, third = st.columns(3)
-    first.metric("Recall таксономии", f"{taxonomy['overall_recall']:.1%}")
-    second.metric("Purity кластеров", f"{clusters['weighted_purity']:.1%}")
-    third.metric("Recall дефектов", f"{clusters['defect_recall']:.1%}")
-    st.subheader("Слабые дефекты")
-    st.write(taxonomy["weak_defects"] or "Нет")
-    st.subheader("Ошибки таксономии")
+    first.metric(labels["taxonomy_metric"], f"{taxonomy['overall_recall']:.1%}")
+    st.subheader("Эксперимент: объединение похожих отзывов")
+    st.caption(
+        "Эмбеддинги группируются без таксономии; метрики нужны для проверки "
+        "качества таких групп."
+    )
+    second.metric(
+        labels["cluster_purity_metric"],
+        f"{clusters['weighted_purity']:.1%}",
+    )
+    third.metric(
+        labels["cluster_recall_metric"],
+        f"{clusters['defect_recall']:.1%}",
+    )
+    st.subheader(labels["weak_defects"])
+    st.write(
+        [defect_display_name(item) for item in taxonomy["weak_defects"]]
+        or "Нет"
+    )
+    st.subheader(labels["distribution"])
+    distribution = build_defect_distribution(
+        taxonomy.get("defect_counts", {})
+    )
+    if distribution:
+        st.dataframe(
+            [
+                {
+                    **row,
+                    "Доля": f"{row['Доля']:.1%}",
+                }
+                for row in distribution
+            ],
+            hide_index=True,
+        )
+    else:
+        st.write("Дефекты не обнаружены")
+    st.subheader(labels["taxonomy_errors"])
     st.json(result["taxonomy_error_types"] or {})
 
 
