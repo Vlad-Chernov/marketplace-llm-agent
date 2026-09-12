@@ -8,6 +8,7 @@ from marketplace_agent.llm.structured import (
     StructuredOutputError,
     chat_structured,
 )
+from marketplace_agent.llm.telemetry import trace_event
 from marketplace_agent.support.agent import (
     AgentAnswer,
     AgentDecision,
@@ -68,6 +69,13 @@ def _decide(llm: LLMClient):
     def decide(
         state: SupportGraphState,
     ) -> dict[str, object]:
+        trace_event(
+            "support_decision_started",
+            {
+                "tool_steps": state["tool_steps"],
+                "message_count": len(state["messages"]),
+            },
+        )
         try:
             decision = chat_structured(
                 client=llm,
@@ -76,12 +84,20 @@ def _decide(llm: LLMClient):
                 max_retries=0,
             )
         except StructuredOutputError:
+            trace_event(
+                "support_decision_failed",
+                {"error_type": "StructuredOutputError"},
+            )
             return {
                 "escalation_reason": (
                     "Не удалось безопасно обработать запрос."
                 )
             }
 
+        trace_event(
+            "support_decision_completed",
+            decision.model_dump(mode="json"),
+        )
         return {"decision": decision}
 
     return decide
@@ -165,22 +181,31 @@ def _finalize(
     decision = state["decision"]
 
     if decision.status == "escalated":
-        return {
-            "answer": _escalated_answer("ambiguous_case"),
-        }
+        answer = _escalated_answer("ambiguous_case")
+        trace_event(
+            "support_answer_completed",
+            answer.model_dump(mode="json"),
+        )
+        return {"answer": answer}
 
     if decision.status is None or not decision.text:
-        return {
-            "answer": _escalated_answer("insufficient_data"),
-        }
-
-    return {
-        "answer": AgentAnswer(
-            status=decision.status,
-            text=decision.text,
-            citations=decision.citations,
+        answer = _escalated_answer("insufficient_data")
+        trace_event(
+            "support_answer_completed",
+            answer.model_dump(mode="json"),
         )
-    }
+        return {"answer": answer}
+
+    answer = AgentAnswer(
+        status=decision.status,
+        text=decision.text,
+        citations=decision.citations,
+    )
+    trace_event(
+        "support_answer_completed",
+        answer.model_dump(mode="json"),
+    )
+    return {"answer": answer}
 
 
 def _step_limit(
@@ -192,11 +217,12 @@ def _step_limit(
 def _escalate(
     state: SupportGraphState,
 ) -> dict[str, AgentAnswer]:
-    return {
-        "answer": _escalated_answer(
-            state["escalation_reason"],
-        )
-    }
+    answer = _escalated_answer(state["escalation_reason"])
+    trace_event(
+        "support_answer_completed",
+        answer.model_dump(mode="json"),
+    )
+    return {"answer": answer}
 
 
 def _escalated_answer(reason: str) -> AgentAnswer:

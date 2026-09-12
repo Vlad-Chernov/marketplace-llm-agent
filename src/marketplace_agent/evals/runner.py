@@ -8,6 +8,7 @@ from typing import Any
 from uuid import uuid4
 
 from marketplace_agent.evals.models import GoldenCase
+from marketplace_agent.llm.telemetry import trace_event
 from marketplace_agent.privacy.pii import PiiRedactor
 
 
@@ -75,6 +76,15 @@ def run_evaluation(
 
     for index, case in enumerate(cases, start=1):
         started_at = perf_counter()
+        trace_event(
+            "evaluation_case_started",
+            {
+                "case_id": case.id,
+                "case_type": case.type,
+                "current": index,
+                "total": total_cases,
+            },
+        )
 
         try:
             prediction = execute_case(case)
@@ -96,6 +106,16 @@ def run_evaluation(
                     expected_tool_calls=case.must_call_tools,
                 )
             )
+            trace_event(
+                "evaluation_case_failed",
+                {
+                    "case_id": case.id,
+                    "case_type": case.type,
+                    "error_type": type(error).__name__,
+                    "error": str(error),
+                    "latency_ms": latency_ms,
+                },
+            )
         else:
             results.append(
                 EvaluationResult(
@@ -113,6 +133,17 @@ def run_evaluation(
                     tool_calls=prediction.tool_calls,
                     expected_tool_calls=case.must_call_tools,
                 )
+            )
+            trace_event(
+                "evaluation_case_completed",
+                {
+                    "case_id": case.id,
+                    "case_type": case.type,
+                    "model": prediction.model,
+                    "latency_ms": prediction.latency_ms,
+                    "prompt_tokens": prediction.prompt_tokens,
+                    "completion_tokens": prediction.completion_tokens,
+                },
             )
 
         if progress_callback is not None:

@@ -4,6 +4,7 @@ from typing import Any, Literal, Protocol
 from pydantic import BaseModel, ConfigDict, Field
 
 from marketplace_agent.llm.base import LLMClient, Message
+from marketplace_agent.llm.telemetry import trace_event
 
 
 class ToolRegistry(Protocol):
@@ -56,11 +57,29 @@ class SupportAgent:
     ) -> AgentAnswer:
         """Run one safe support conversation through the graph."""
 
+        trace_event(
+            "support_request_started",
+            {
+                "message": message,
+                "session_id": session_id,
+                "history_length": len(history),
+            },
+        )
         if self._is_prompt_injection(message):
-            return self._escalated("prompt_injection")
+            answer = self._escalated("prompt_injection")
+            trace_event(
+                "support_request_completed",
+                answer.model_dump(mode="json"),
+            )
+            return answer
 
         if self._is_forbidden_request(message):
-            return self._escalated("forbidden_request")
+            answer = self._escalated("forbidden_request")
+            trace_event(
+                "support_request_completed",
+                answer.model_dump(mode="json"),
+            )
+            return answer
 
         messages = self._build_messages(message, session_id, history)
         result = self._graph.invoke(
@@ -72,7 +91,12 @@ class SupportAgent:
             }
         )
 
-        return result["answer"]
+        answer = result["answer"]
+        trace_event(
+            "support_request_completed",
+            answer.model_dump(mode="json"),
+        )
+        return answer
 
     def _is_prompt_injection(self, message: str) -> bool:
         normalized = message.casefold()

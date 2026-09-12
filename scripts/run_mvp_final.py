@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+from uuid import uuid4
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
@@ -20,6 +21,11 @@ from marketplace_agent.evals.runner import EvaluationProgress, save_run
 from marketplace_agent.llm.cache import CachedLLMClient
 from marketplace_agent.llm.factory import create_llm_client
 from marketplace_agent.llm.progress import ProgressLLMClient
+from marketplace_agent.llm.telemetry import (
+    TracingLLMClient,
+    create_trace_writer,
+    trace_run,
+)
 from marketplace_agent.retrieval.documents import load_policy_chunks
 from marketplace_agent.retrieval.hybrid import HybridRetriever
 from marketplace_agent.retrieval.lexical import BM25Retriever
@@ -64,7 +70,7 @@ def main() -> None:
         cache_namespace=settings.cache_namespace,
     )
     meter = MeteredLLMClient(
-        cached_llm,
+        TracingLLMClient(cached_llm),
         input_price_per_million=settings.input_price_per_million,
         output_price_per_million=settings.output_price_per_million,
     )
@@ -105,17 +111,23 @@ def main() -> None:
         PROJECT_ROOT / "data" / "gold" / "mvp_cases.json"
     )
 
-    run = run_mvp_final(
-        cases,
-        executor.execute,
-        progress_callback=(
-            _print_progress if progress_enabled else None
-        ),
+    trace_id = f"mvp-final-{uuid4().hex}"
+    writer = create_trace_writer(
+        PROJECT_ROOT / "data" / "traces",
+        trace_id,
     )
-    output_path = save_run(
-        run,
-        PROJECT_ROOT / "evals" / "results",
-    )
+    with trace_run(writer, trace_id):
+        run = run_mvp_final(
+            cases,
+            executor.execute,
+            progress_callback=(
+                _print_progress if progress_enabled else None
+            ),
+        )
+        output_path = save_run(
+            run,
+            PROJECT_ROOT / "evals" / "results",
+        )
 
     errors = sum(result.error is not None for result in run.results)
     print(
@@ -123,6 +135,7 @@ def main() -> None:
         f"{cached_llm.cache_misses} misses"
     )
     print(f"Saved evaluation: {output_path}")
+    print(f"Trace: {writer.trace_path}")
     print(f"Cases: {len(run.results)}, errors: {errors}")
 
 

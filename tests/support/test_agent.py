@@ -1,4 +1,12 @@
+import json
+from pathlib import Path
+
 from marketplace_agent.llm.base import FakeLLMClient, LLMResponse, Message
+from marketplace_agent.llm.telemetry import (
+    TraceWriter,
+    TracingLLMClient,
+    trace_run,
+)
 from marketplace_agent.support.agent import AgentAnswer, SupportAgent
 from marketplace_agent.support.tools import ToolResult
 
@@ -457,3 +465,43 @@ def test_support_agent_delegates_safe_request_to_graph(
 
     assert answer == expected
     assert received_states[0]["session_id"] == "session-001"
+
+
+def test_records_support_decision_and_answer_in_active_trace(
+    tmp_path: Path,
+) -> None:
+    trace_path = tmp_path / "trace.jsonl"
+    agent = SupportAgent(
+        registry=NoCallRegistry(),
+        llm=TracingLLMClient(
+            FakeLLMClient(
+                [
+                    response(
+                        '{"kind":"final","status":"answered",'
+                        '"text":"Ответ.","citations":[]}'
+                    )
+                ]
+            )
+        ),
+    )
+
+    with trace_run(TraceWriter(trace_path), "run-support"):
+        answer = agent.run("Вопрос", "session-001", [])
+
+    events = [
+        json.loads(line)
+        for line in trace_path.read_text(encoding="utf-8").splitlines()
+    ]
+
+    assert answer.status == "answered"
+    assert [event["event_type"] for event in events] == [
+        "run_started",
+        "support_request_started",
+        "support_decision_started",
+        "llm_call_started",
+        "llm_call_completed",
+        "support_decision_completed",
+        "support_answer_completed",
+        "support_request_completed",
+        "run_completed",
+    ]

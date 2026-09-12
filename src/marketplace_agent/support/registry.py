@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from typing import Any
 
+from marketplace_agent.llm.telemetry import trace_event
 from marketplace_agent.support.tools import Tool, ToolResult
 
 
@@ -20,24 +21,34 @@ class ToolRegistry:
         name: str,
         arguments: dict[str, Any],
     ) -> ToolResult:
+        trace_event(
+            "tool_call_started",
+            {"name": name, "arguments": arguments},
+        )
         tool = self._tools.get(name)
         if tool is None:
-            return ToolResult(
-                ok=False,
-                error="Инструмент не найден.",
-                error_code="unknown_tool",
+            return _trace_result(
+                name,
+                ToolResult(
+                    ok=False,
+                    error="Инструмент не найден.",
+                    error_code="unknown_tool",
+                ),
             )
 
         try:
             tool.input_model.model_validate(arguments)
         except (TypeError, ValueError):
-            return ToolResult(
-                ok=False,
-                error="Некорректные аргументы инструмента.",
-                error_code="invalid_arguments",
+            return _trace_result(
+                name,
+                ToolResult(
+                    ok=False,
+                    error="Некорректные аргументы инструмента.",
+                    error_code="invalid_arguments",
+                ),
             )
 
-        return tool.run(**arguments)
+        return _trace_result(name, tool.run(**arguments))
 
     def schemas(self) -> list[dict[str, object]]:
         """Return OpenAI-compatible function schemas."""
@@ -53,3 +64,11 @@ class ToolRegistry:
             }
             for tool in self._tools.values()
         ]
+
+
+def _trace_result(name: str, result: ToolResult) -> ToolResult:
+    trace_event(
+        "tool_call_completed",
+        {"name": name, "result": result.model_dump(mode="json")},
+    )
+    return result

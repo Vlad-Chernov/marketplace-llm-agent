@@ -1,4 +1,5 @@
 import json
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from decimal import Decimal
@@ -19,6 +20,12 @@ from marketplace_agent.evals.llm_meter import MeteredLLMClient
 from marketplace_agent.llm.base import Message
 from marketplace_agent.llm.factory import create_llm_client
 from marketplace_agent.llm.providers import LLMProviderError
+from marketplace_agent.llm.telemetry import (
+    TracingLLMClient,
+    create_trace_writer,
+    trace_event,
+    trace_run,
+)
 from marketplace_agent.retrieval.documents import load_policy_chunks
 from marketplace_agent.retrieval.lexical import BM25Retriever
 from marketplace_agent.storage.repositories import (
@@ -113,11 +120,9 @@ def review_report() -> dict[str, object]:
 def support_demo(request: SupportDemoRequest) -> SupportDemoResponse:
     """Answer one support question through the guarded support agent."""
 
-    started_at = perf_counter()
-    answer = _run_support_request(request)
-    return SupportDemoResponse(
-        answer=answer,
-        latency_ms=round((perf_counter() - started_at) * 1000),
+    return _run_with_trace(
+        "support",
+        lambda: _run_support_request_response(request),
     )
 
 
@@ -135,7 +140,10 @@ def start_support_job(request: SupportDemoRequest) -> DemoJobResponse:
 def generate_demo_content(request: ContentDemoRequest) -> PipelineResult:
     """Generate one product card through the production content pipeline."""
 
-    return _run_content_request(request)
+    return _run_with_trace(
+        "content",
+        lambda: _run_content_request(request),
+    )
 
 
 @app.post("/demo/content/jobs", status_code=202)
@@ -171,7 +179,7 @@ def _run_content_request(request: ContentDemoRequest) -> PipelineResult:
         raise ValueError("GIGACHAT_AUTHORIZATION_KEY is required.")
 
     client = MeteredLLMClient(
-        create_llm_client(gigachat_settings),
+        TracingLLMClient(create_llm_client(gigachat_settings)),
         input_price_per_million=gigachat_settings.input_price_per_million,
         output_price_per_million=gigachat_settings.output_price_per_million,
     )
@@ -207,9 +215,21 @@ def _submit_job(
 def _execute_job(job_id: str, work: Any) -> None:
     with _jobs_lock:
         _jobs[job_id]["status"] = "running"
+        kind = str(_jobs[job_id]["kind"])
+    run_id = f"{kind}-{job_id}"
+    writer = create_trace_writer(
+        _project_root() / "data" / "traces",
+        run_id,
+    )
     try:
-        result = work()
-        serialized = result.model_dump(mode="json")
+        with trace_run(writer, run_id):
+            trace_event("job_started", {"kind": kind})
+            result = work()
+            serialized = result.model_dump(mode="json")
+            trace_event(
+                "job_completed",
+                {"kind": kind, "status": "completed"},
+            )
     except Exception as error:  # noqa: BLE001
         with _jobs_lock:
             _jobs[job_id]["status"] = "failed"
@@ -259,7 +279,7 @@ def _run_support_request(request: SupportDemoRequest) -> AgentAnswer:
         raise ValueError("GIGACHAT_AUTHORIZATION_KEY is required.")
 
     llm = MeteredLLMClient(
-        create_llm_client(gigachat_settings),
+        TracingLLMClient(create_llm_client(gigachat_settings)),
         input_price_per_million=gigachat_settings.input_price_per_million,
         output_price_per_million=gigachat_settings.output_price_per_million,
     )
@@ -295,3 +315,13 @@ def _run_support_request_response(
 
 def _project_root() -> Path:
     return Path(__file__).resolve().parents[2]
+
+
+def _run_with_trace(kind: str, work: Callable[[], Any]) -> Any:
+    run_id = f"{kind}-{uuid4().hex}"
+    writer = create_trace_writer(
+        _project_root() / "data" / "traces",
+        run_id,
+    )
+    with trace_run(writer, run_id):
+        return work()

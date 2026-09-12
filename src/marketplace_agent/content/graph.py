@@ -20,6 +20,7 @@ from marketplace_agent.domain.models import (
     RuleViolation,
 )
 from marketplace_agent.llm.base import LLMClient
+from marketplace_agent.llm.telemetry import trace_event
 from marketplace_agent.validation.deterministic import (
     validate_deterministic,
 )
@@ -88,6 +89,14 @@ def _generate(
     def generate(
         state: ContentGraphState,
     ) -> dict[str, object]:
+        next_attempt = state["attempts"] + 1
+        trace_event(
+            "content_generation_started",
+            {
+                "sku": state["product"].sku,
+                "attempt": next_attempt,
+            },
+        )
         confirmed_attributes = {
             key: attribute.value
             for key, attribute in state[
@@ -101,14 +110,27 @@ def _generate(
             examples=examples,
         )
 
+        content = generate_content(
+            state["product"],
+            state["extracted_attributes"],
+            llm,
+            examples=selected_examples,
+        )
+        selected_example_ids = [
+            example.example_id for example in selected_examples
+        ]
+        trace_event(
+            "content_generation_completed",
+            {
+                "sku": state["product"].sku,
+                "attempt": next_attempt,
+                "title": content.title,
+                "selected_example_ids": selected_example_ids,
+            },
+        )
         return {
-            "content": generate_content(
-                state["product"],
-                state["extracted_attributes"],
-                llm,
-                examples=selected_examples,
-            ),
-            "attempts": state["attempts"] + 1,
+            "content": content,
+            "attempts": next_attempt,
             "selected_example_ids": [
                 example.example_id
                 for example in selected_examples
@@ -125,12 +147,30 @@ def _validate(llm: LLMClient):
         content = state["content"]
         assert content is not None
 
+        trace_event(
+            "content_validation_started",
+            {
+                "sku": state["product"].sku,
+                "attempt": state["attempts"],
+            },
+        )
         violations = _validate_content(
             content,
             state["deterministic_rules"],
             state["semantic_rules"],
             state["evidence"],
             llm,
+        )
+        trace_event(
+            "content_validation_completed",
+            {
+                "sku": state["product"].sku,
+                "attempt": state["attempts"],
+                "violation_count": len(violations),
+                "rule_ids": [
+                    violation.rule_id for violation in violations
+                ],
+            },
         )
         return {
             "violations": violations,
@@ -187,14 +227,32 @@ def _repair(llm: LLMClient):
         content = state["content"]
         assert content is not None
 
+        next_attempt = state["attempts"] + 1
+        trace_event(
+            "content_repair_started",
+            {
+                "sku": state["product"].sku,
+                "attempt": next_attempt,
+                "violation_count": len(state["violations"]),
+            },
+        )
+        repaired_content = repair_content(
+            content,
+            state["violations"],
+            state["evidence"],
+            llm,
+        )
+        trace_event(
+            "content_repair_completed",
+            {
+                "sku": state["product"].sku,
+                "attempt": next_attempt,
+                "title": repaired_content.title,
+            },
+        )
         return {
-            "content": repair_content(
-                content,
-                state["violations"],
-                state["evidence"],
-                llm,
-            ),
-            "attempts": state["attempts"] + 1,
+            "content": repaired_content,
+            "attempts": next_attempt,
         }
 
     return repair
@@ -206,6 +264,14 @@ def _completed(
     content = state["content"]
     assert content is not None
 
+    trace_event(
+        "content_pipeline_completed",
+        {
+            "sku": state["product"].sku,
+            "attempts": state["attempts"],
+            "status": "completed",
+        },
+    )
     return {
         "result": PipelineResult(
             sku=state["product"].sku,
@@ -224,6 +290,15 @@ def _manual_review(
     content = state["content"]
     assert content is not None
 
+    trace_event(
+        "content_pipeline_manual_review",
+        {
+            "sku": state["product"].sku,
+            "attempts": state["attempts"],
+            "status": "manual_review",
+            "violation_count": len(state["violations"]),
+        },
+    )
     return {
         "result": PipelineResult(
             sku=state["product"].sku,

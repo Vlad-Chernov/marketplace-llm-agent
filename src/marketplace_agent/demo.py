@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict
 from marketplace_agent.content.pipeline import run_content_pipeline
 from marketplace_agent.domain.models import PipelineResult
 from marketplace_agent.llm.base import LLMClient
+from marketplace_agent.llm.telemetry import trace_event
 from marketplace_agent.reviews.analyzer import ReviewLabels, classify_review
 from marketplace_agent.reviews.taxonomy import load_defect_taxonomy
 from marketplace_agent.storage.repositories import (
@@ -52,9 +53,19 @@ def run_demo(
     if not reviews:
         raise ValueError("Demo product has no reviews.")
 
+    trace_event("demo_content_started", {"sku": product.sku})
     content = run_content_pipeline(product, llm)
+    trace_event(
+        "demo_content_completed",
+        {"sku": product.sku, "status": content.status},
+    )
     taxonomy = load_defect_taxonomy(_project_root() / "data/taxonomy/laptop_defects.yaml")
+    trace_event("demo_review_analysis_started", {"review_id": reviews[0].review_id})
     review = classify_review(reviews[0], taxonomy, llm)
+    trace_event(
+        "demo_review_analysis_completed",
+        {"review_id": reviews[0].review_id, "defect_id": review.defect_id},
+    )
 
     registry = ToolRegistry(
         [
@@ -63,10 +74,15 @@ def run_demo(
             SearchPolicyTool(retriever),
         ]
     )
+    trace_event("demo_support_started", {})
     support = SupportAgent(registry, llm).run(
         message="Сколько дней можно вернуть товар?",
         session_id="demo-session",
         history=[],
+    )
+    trace_event(
+        "demo_support_completed",
+        {"status": support.status, "citations": support.citations},
     )
 
     return DemoResult(
