@@ -5,7 +5,6 @@ import streamlit as st
 from marketplace_agent.ui_preview import build_card_preview
 from marketplace_agent.ui_review_report import (
     build_defect_distribution,
-    defect_display_name,
     review_report_labels,
 )
 
@@ -186,31 +185,16 @@ def _render_review_report() -> None:
         f"очищено: {result['cleaned_review_count']}"
     )
     taxonomy = result["taxonomy_metrics"]
-    clusters = result["cluster_metrics"]
     labels = review_report_labels()
     st.subheader("Классификация отзывов по типам дефектов")
     st.caption(
         "LLM сопоставляет каждый отзыв с фиксированной категорией дефекта."
     )
-    first, second, third = st.columns(3)
+    first, second = st.columns(2)
     first.metric(labels["taxonomy_metric"], f"{taxonomy['overall_recall']:.1%}")
-    st.subheader("Эксперимент: объединение похожих отзывов")
-    st.caption(
-        "Эмбеддинги группируются без таксономии; метрики нужны для проверки "
-        "качества таких групп."
-    )
     second.metric(
-        labels["cluster_purity_metric"],
-        f"{clusters['weighted_purity']:.1%}",
-    )
-    third.metric(
-        labels["cluster_recall_metric"],
-        f"{clusters['defect_recall']:.1%}",
-    )
-    st.subheader(labels["weak_defects"])
-    st.write(
-        [defect_display_name(item) for item in taxonomy["weak_defects"]]
-        or "Нет"
+        labels["frequency_error_metric"],
+        f"{taxonomy['mean_absolute_frequency_error']:.1f}",
     )
     st.subheader(labels["distribution"])
     distribution = build_defect_distribution(
@@ -229,8 +213,6 @@ def _render_review_report() -> None:
         )
     else:
         st.write("Дефекты не обнаружены")
-    st.subheader(labels["taxonomy_errors"])
-    st.json(result["taxonomy_error_types"] or {})
 
 
 def _render_support_chat() -> None:

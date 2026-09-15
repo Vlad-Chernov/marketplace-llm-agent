@@ -15,10 +15,7 @@ def review_report_labels() -> dict[str, str]:
     """Return plain-language labels used by the review report UI."""
     return {
         "taxonomy_metric": "Точность классификации дефектов",
-        "cluster_purity_metric": "Чистота тематических групп",
-        "cluster_recall_metric": "Покрытие дефектов кластеризацией",
-        "weak_defects": "Дефекты, которые классифицируются хуже всего",
-        "taxonomy_errors": "Ошибки классификации",
+        "frequency_error_metric": "Ошибка подсчёта дефектов",
         "distribution": "Распределение дефектов",
     }
 

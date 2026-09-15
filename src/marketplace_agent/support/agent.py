@@ -74,7 +74,14 @@ class SupportAgent:
             return answer
 
         if self._is_forbidden_request(message):
-            answer = self._escalated("forbidden_request")
+            answer = self._escalated(
+                "forbidden_request",
+                text=(
+                    "Персональные данные покупателей не предоставляются."
+                    if self._is_personal_data_request(message)
+                    else None
+                ),
+            )
             trace_event(
                 "support_request_completed",
                 answer.model_dump(mode="json"),
@@ -133,7 +140,15 @@ class SupportAgent:
             "электронную почту покупателя",
             "адрес покупателя",
             "телефон покупателя",
+            "номер телефона",
             "номер телефона покупателя",
+            "телефон по заказу",
+            "адрес по заказу",
+            "email по заказу",
+            "электронную почту по заказу",
+            "сколько стоил заказ",
+            "стоимость заказа",
+            "цена заказа",
             "чужого заказа",
             "другого покупателя",
             "не владелец",
@@ -151,6 +166,23 @@ class SupportAgent:
             "очисти таблицу orders",
             "удали все записи из базы",
             "скачай системный файл",
+        )
+        return any(marker in normalized for marker in markers)
+
+    def _is_personal_data_request(self, message: str) -> bool:
+        normalized = message.casefold()
+        markers = (
+            "номер телефона",
+            "номер телефона покупателя",
+            "телефон покупателя",
+            "телефон по заказу",
+            "адрес покупателя",
+            "адрес по заказу",
+            "email покупателя",
+            "email по заказу",
+            "электронную почту покупателя",
+            "электронную почту по заказу",
+            "персональные данные",
         )
         return any(marker in normalized for marker in markers)
 
@@ -198,9 +230,9 @@ class SupportAgent:
             ),
         ]
 
-    def _escalated(self, reason: str) -> AgentAnswer:
+    def _escalated(self, reason: str, text: str | None = None) -> AgentAnswer:
         return AgentAnswer(
             status="escalated",
-            text="Передам вопрос специалисту.",
+            text=text or "Передам вопрос специалисту.",
             escalation_reason=reason,
         )

@@ -10,10 +10,7 @@ def test_uses_plain_language_for_review_report_metrics() -> None:
 
     assert labels == {
         "taxonomy_metric": "Точность классификации дефектов",
-        "cluster_purity_metric": "Чистота тематических групп",
-        "cluster_recall_metric": "Покрытие дефектов кластеризацией",
-        "weak_defects": "Дефекты, которые классифицируются хуже всего",
-        "taxonomy_errors": "Ошибки классификации",
+        "frequency_error_metric": "Ошибка подсчёта дефектов",
         "distribution": "Распределение дефектов",
     }
 

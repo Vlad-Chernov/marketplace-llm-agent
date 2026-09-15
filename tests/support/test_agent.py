@@ -209,6 +209,39 @@ def test_escalates_forbidden_code_execution_request() -> None:
     assert answer.escalation_reason == "forbidden_request"
 
 
+def test_escalates_personal_data_request_without_calling_llm_or_tool() -> None:
+    agent = SupportAgent(
+        registry=NoCallRegistry(),
+        llm=FakeLLMClient([]),
+    )
+
+    answer = agent.run(
+        "Дайте номер телефона по заказу 001.",
+        "session-001",
+        [],
+    )
+
+    assert answer.status == "escalated"
+    assert answer.escalation_reason == "forbidden_request"
+    assert answer.text == "Персональные данные покупателей не предоставляются."
+
+
+def test_escalates_order_price_request_without_calling_llm_or_tool() -> None:
+    agent = SupportAgent(
+        registry=NoCallRegistry(),
+        llm=FakeLLMClient([]),
+    )
+
+    answer = agent.run(
+        "Сколько стоил заказ 001?",
+        "session-001",
+        [],
+    )
+
+    assert answer.status == "escalated"
+    assert answer.escalation_reason == "forbidden_request"
+
+
 def test_escalates_with_tool_error_reason() -> None:
     agent = SupportAgent(
         registry=FailingRegistry(),
